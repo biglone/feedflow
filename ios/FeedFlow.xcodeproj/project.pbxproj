@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -18,6 +18,7 @@
 		4988668EB5547101D6988130 /* PlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C82E0704EF7D9A1F25F630 /* PlayerManager.swift */; };
 		57BBC11B43555A449577C675 /* StarredArticlesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE0FBC1C0F5EE926FB1CE3C /* StarredArticlesView.swift */; };
 		65EC6975353FF51E34DF2BC0 /* YouTubeSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECBB88DB99A96FEED2A56523 /* YouTubeSearchView.swift */; };
+		7FC749D4F7664A94F1BCE61F /* ImportSubscriptionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BE21CD6BD5F168217F01828 /* ImportSubscriptionsView.swift */; };
 		98093A5E7072DC59672B4D61 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A15B67138970399BE186E9 /* ContentView.swift */; };
 		A00852C7E5B4B10618A5D45E /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE8ADB5007054CBB6B20BD23 /* APIClient.swift */; };
 		A6790E11DBA1BE279A12330A /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = 72A27BB7862D8C6810EE8384 /* FeedKit */; };
@@ -27,6 +28,7 @@
 		E414B172397C79CA4610A83A /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C412A3C117CE7240B8B18799 /* TimelineView.swift */; };
 		E75F1EB832F852FD33E8E636 /* RSSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B023E24435AE4F1B87D1AAE /* RSSService.swift */; };
 		EA164DE9FECCAE489EE77353 /* FeedManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C345CACEE92CE792022984F /* FeedManager.swift */; };
+		EE512CE9F6066918BE7422FF /* GoogleAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0D9FF91921C8FB3127CCC1 /* GoogleAuthManager.swift */; };
 		F3945DFAB1CFC716F0F1D3A4 /* Folder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE75F0FE93D8D208F47610D6 /* Folder.swift */; };
 /* End PBXBuildFile section */
 
@@ -42,13 +44,15 @@
 		47857FFBE48F3D5F35084887 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4EB399D787D3D9F06E94D29E /* FeedFlow.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FeedFlow.entitlements; sourceTree = "<group>"; };
 		50C82E0704EF7D9A1F25F630 /* PlayerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerManager.swift; sourceTree = "<group>"; };
+		6BE21CD6BD5F168217F01828 /* ImportSubscriptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportSubscriptionsView.swift; sourceTree = "<group>"; };
 		7B023E24435AE4F1B87D1AAE /* RSSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RSSService.swift; sourceTree = "<group>"; };
 		9BE0FBC1C0F5EE926FB1CE3C /* StarredArticlesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarredArticlesView.swift; sourceTree = "<group>"; };
 		9C345CACEE92CE792022984F /* FeedManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedManager.swift; sourceTree = "<group>"; };
 		AE75F0FE93D8D208F47610D6 /* Folder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Folder.swift; sourceTree = "<group>"; };
 		AE8ADB5007054CBB6B20BD23 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
-		B61B460DD92BA97402AD43BA /* FeedFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FeedFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B61B460DD92BA97402AD43BA /* FeedFlow.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FeedFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C412A3C117CE7240B8B18799 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
+		CA0D9FF91921C8FB3127CCC1 /* GoogleAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthManager.swift; sourceTree = "<group>"; };
 		D1C24631A1EB7ACE83D4951E /* MiniPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayerView.swift; sourceTree = "<group>"; };
 		DC19D1DD0BB3FD46B8DECFAB /* FeedFlowApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedFlowApp.swift; sourceTree = "<group>"; };
 		ECBB88DB99A96FEED2A56523 /* YouTubeSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeSearchView.swift; sourceTree = "<group>"; };
@@ -206,6 +210,7 @@
 			children = (
 				236BEF9CFA8D801EC699F24D /* AuthManager.swift */,
 				9C345CACEE92CE792022984F /* FeedManager.swift */,
+				CA0D9FF91921C8FB3127CCC1 /* GoogleAuthManager.swift */,
 				50C82E0704EF7D9A1F25F630 /* PlayerManager.swift */,
 				7B023E24435AE4F1B87D1AAE /* RSSService.swift */,
 			);
@@ -236,6 +241,7 @@
 		F80D121DB17A868B74B69956 /* YouTube */ = {
 			isa = PBXGroup;
 			children = (
+				6BE21CD6BD5F168217F01828 /* ImportSubscriptionsView.swift */,
 				ECBB88DB99A96FEED2A56523 /* YouTubeSearchView.swift */,
 			);
 			path = YouTube;
@@ -273,6 +279,7 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					84EB985D564673ECB604D5BB = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -286,9 +293,11 @@
 				en,
 			);
 			mainGroup = 2F2DE197DBB77F3D06EEB98A;
+			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				AEFEAF02A40A1162A95EF295 /* XCRemoteSwiftPackageReference "FeedKit" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -314,6 +323,8 @@
 				EA164DE9FECCAE489EE77353 /* FeedManager.swift in Sources */,
 				D092A536B6D32DA9AB72DEF7 /* FeedsListView.swift in Sources */,
 				F3945DFAB1CFC716F0F1D3A4 /* Folder.swift in Sources */,
+				EE512CE9F6066918BE7422FF /* GoogleAuthManager.swift in Sources */,
+				7FC749D4F7664A94F1BCE61F /* ImportSubscriptionsView.swift in Sources */,
 				2FA8617352FD59137303CEF5 /* MiniPlayerView.swift in Sources */,
 				4988668EB5547101D6988130 /* PlayerManager.swift in Sources */,
 				E75F1EB832F852FD33E8E636 /* RSSService.swift in Sources */,
@@ -335,7 +346,7 @@
 				CODE_SIGN_ENTITLEMENTS = FeedFlow/Resources/FeedFlow.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = CSV2Y5GFLF;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = FeedFlow/Resources/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -419,7 +430,7 @@
 				CODE_SIGN_ENTITLEMENTS = FeedFlow/Resources/FeedFlow.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = CSV2Y5GFLF;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = FeedFlow/Resources/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

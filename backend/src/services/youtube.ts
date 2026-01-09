@@ -241,3 +241,59 @@ export function formatDuration(isoDuration: string): string {
   }
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
+
+export interface YouTubeSubscription {
+  channelId: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  rssUrl: string;
+}
+
+// Get user's YouTube subscriptions using OAuth access token
+export async function getSubscriptions(
+  accessToken: string
+): Promise<YouTubeSubscription[]> {
+  const subscriptions: YouTubeSubscription[] = [];
+  let pageToken: string | undefined;
+
+  // Create authenticated YouTube client
+  const oauth2Client = new google.auth.OAuth2();
+  oauth2Client.setCredentials({ access_token: accessToken });
+
+  const authenticatedYoutube = google.youtube({
+    version: "v3",
+    auth: oauth2Client,
+  });
+
+  do {
+    const response = await authenticatedYoutube.subscriptions.list({
+      part: ["snippet"],
+      mine: true,
+      maxResults: 50,
+      pageToken,
+    });
+
+    if (response.data.items) {
+      for (const item of response.data.items) {
+        const channelId = item.snippet?.resourceId?.channelId;
+        if (channelId) {
+          subscriptions.push({
+            channelId,
+            title: item.snippet?.title || "Unknown",
+            description: item.snippet?.description || "",
+            thumbnailUrl:
+              item.snippet?.thumbnails?.medium?.url ||
+              item.snippet?.thumbnails?.default?.url ||
+              "",
+            rssUrl: getChannelRssUrl(channelId),
+          });
+        }
+      }
+    }
+
+    pageToken = response.data.nextPageToken || undefined;
+  } while (pageToken);
+
+  return subscriptions;
+}

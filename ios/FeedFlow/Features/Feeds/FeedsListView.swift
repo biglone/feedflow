@@ -6,6 +6,7 @@ struct FeedsListView: View {
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @State private var showingAddFeed = false
     @State private var showingYouTubeSearch = false
+    @State private var showingImportSubscriptions = false
     @State private var selectedFeed: Feed?
     @StateObject private var feedManager: FeedManager
 
@@ -49,6 +50,14 @@ struct FeedsListView: View {
                         } label: {
                             Label("Subscribe YouTube", systemImage: "play.rectangle")
                         }
+
+                        Divider()
+
+                        Button {
+                            showingImportSubscriptions = true
+                        } label: {
+                            Label("Import from YouTube", systemImage: "arrow.down.circle")
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -62,6 +71,9 @@ struct FeedsListView: View {
             }
             .sheet(isPresented: $showingYouTubeSearch) {
                 YouTubeSearchView()
+            }
+            .sheet(isPresented: $showingImportSubscriptions) {
+                ImportSubscriptionsView()
             }
         }
     }
