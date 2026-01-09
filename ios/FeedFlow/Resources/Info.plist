@@ -27,5 +27,16 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.feedflow.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>feedflow</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
