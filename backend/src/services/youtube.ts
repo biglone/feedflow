@@ -31,42 +31,57 @@ export async function searchChannels(
   query: string,
   maxResults: number = 10
 ): Promise<YouTubeChannel[]> {
-  const response = await youtube.search.list({
-    part: ["snippet"],
-    q: query,
-    type: ["channel"],
-    maxResults,
-  });
-
-  const channelIds =
-    response.data.items
-      ?.map((item) => item.snippet?.channelId)
-      .filter(Boolean) as string[];
-
-  if (!channelIds?.length) {
-    return [];
+  if (!process.env.YOUTUBE_API_KEY) {
+    throw new Error("YOUTUBE_API_KEY is not configured. Please add it to your .env file.");
   }
 
-  // Get detailed channel info
-  const channelResponse = await youtube.channels.list({
-    part: ["snippet", "statistics"],
-    id: channelIds,
-  });
+  try {
+    const response = await youtube.search.list({
+      part: ["snippet"],
+      q: query,
+      type: ["channel"],
+      maxResults,
+    });
 
-  return (
-    channelResponse.data.items?.map((channel) => ({
-      id: channel.id!,
-      title: channel.snippet?.title || "Unknown",
-      description: channel.snippet?.description || "",
-      thumbnailUrl:
-        channel.snippet?.thumbnails?.medium?.url ||
-        channel.snippet?.thumbnails?.default?.url ||
-        "",
-      subscriberCount: channel.statistics?.subscriberCount || "0",
-      videoCount: channel.statistics?.videoCount || "0",
-      customUrl: channel.snippet?.customUrl,
-    })) || []
-  );
+    const channelIds =
+      response.data.items
+        ?.map((item) => item.snippet?.channelId)
+        .filter(Boolean) as string[];
+
+    if (!channelIds?.length) {
+      return [];
+    }
+
+    // Get detailed channel info
+    const channelResponse = await youtube.channels.list({
+      part: ["snippet", "statistics"],
+      id: channelIds,
+    });
+
+    return (
+      channelResponse.data.items?.map((channel) => ({
+        id: channel.id!,
+        title: channel.snippet?.title || "Unknown",
+        description: channel.snippet?.description || "",
+        thumbnailUrl:
+          channel.snippet?.thumbnails?.medium?.url ||
+          channel.snippet?.thumbnails?.default?.url ||
+          "",
+        subscriberCount: channel.statistics?.subscriberCount || "0",
+        videoCount: channel.statistics?.videoCount || "0",
+        customUrl: channel.snippet?.customUrl,
+      })) || []
+    );
+  } catch (error: any) {
+    console.error("YouTube API search error:", error.message);
+    if (error.code === 403) {
+      throw new Error("YouTube API quota exceeded or API key invalid. Check your Google Cloud Console.");
+    }
+    if (error.code === 400) {
+      throw new Error("Invalid YouTube API request. Check your API key configuration.");
+    }
+    throw new Error(`YouTube API error: ${error.message || "Unknown error"}`);
+  }
 }
 
 export async function getChannelInfo(

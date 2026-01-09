@@ -60,3 +60,9 @@ yarn-error.log*
 .cache/
 *.tmp
 *.temp
+
+# OAuth credentials
+*.apps.googleusercontent.com.plist
+
+# SpecStory
+.specstory/

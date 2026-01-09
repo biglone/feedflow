@@ -37,6 +37,14 @@
 				<string>feedflow</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.googleusercontent.apps</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.63291274114-3g4e3237ffi0qc6rlmudqj1mg604t7ej</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

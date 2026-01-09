@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -50,7 +50,7 @@
 		9C345CACEE92CE792022984F /* FeedManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedManager.swift; sourceTree = "<group>"; };
 		AE75F0FE93D8D208F47610D6 /* Folder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Folder.swift; sourceTree = "<group>"; };
 		AE8ADB5007054CBB6B20BD23 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
-		B61B460DD92BA97402AD43BA /* FeedFlow.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FeedFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B61B460DD92BA97402AD43BA /* FeedFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FeedFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C412A3C117CE7240B8B18799 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
 		CA0D9FF91921C8FB3127CCC1 /* GoogleAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthManager.swift; sourceTree = "<group>"; };
 		D1C24631A1EB7ACE83D4951E /* MiniPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayerView.swift; sourceTree = "<group>"; };
@@ -279,7 +279,6 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					84EB985D564673ECB604D5BB = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -297,7 +296,6 @@
 			packageReferences = (
 				AEFEAF02A40A1162A95EF295 /* XCRemoteSwiftPackageReference "FeedKit" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -346,7 +344,7 @@
 				CODE_SIGN_ENTITLEMENTS = FeedFlow/Resources/FeedFlow.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = CSV2Y5GFLF;
 				INFOPLIST_FILE = FeedFlow/Resources/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -430,7 +428,7 @@
 				CODE_SIGN_ENTITLEMENTS = FeedFlow/Resources/FeedFlow.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = CSV2Y5GFLF;
 				INFOPLIST_FILE = FeedFlow/Resources/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

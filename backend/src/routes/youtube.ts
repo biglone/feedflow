@@ -122,9 +122,12 @@ youtubeRouter.get("/search", zValidator("query", searchSchema), async (c) => {
   try {
     const channels = await searchChannels(q, limit);
     return c.json({ channels });
-  } catch (error) {
+  } catch (error: any) {
     console.error("YouTube search error:", error);
-    return c.json({ error: "Failed to search YouTube channels" }, 500);
+    const message = error.message || "Failed to search YouTube channels";
+    const statusCode = error.message?.includes("quota exceeded") ? 503 :
+                       error.message?.includes("not configured") ? 500 : 500;
+    return c.json({ error: message }, statusCode);
   }
 });
 

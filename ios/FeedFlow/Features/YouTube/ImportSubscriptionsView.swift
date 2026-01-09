@@ -211,8 +211,9 @@ struct ImportSubscriptionsView: View {
         for subscription in selectedSubscriptions {
             let feed = Feed(
                 title: subscription.title,
-                url: subscription.rssUrl,
-                iconUrl: subscription.thumbnailUrl
+                feedURL: subscription.rssUrl,
+                iconURL: subscription.thumbnailUrl,
+                feedDescription: subscription.description
             )
 
             modelContext.insert(feed)

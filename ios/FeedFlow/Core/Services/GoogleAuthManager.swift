@@ -49,7 +49,7 @@ class GoogleAuthManager: NSObject, ObservableObject {
         let callbackURL = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URL, Error>) in
             webAuthSession = ASWebAuthenticationSession(
                 url: url,
-                callbackURLScheme: "feedflow"
+                callbackURLScheme: "com.googleusercontent.apps.63291274114-3g4e3237ffi0qc6rlmudqj1mg604t7ej"
             ) { callbackURL, error in
                 if let error = error {
                     continuation.resume(throwing: error)
@@ -85,7 +85,7 @@ class GoogleAuthManager: NSObject, ObservableObject {
     private func exchangeCodeForTokens(code: String) async throws {
         let body: [String: Any] = [
             "code": code,
-            "redirectUri": "feedflow://oauth/google/callback"
+            "redirectUri": "com.googleusercontent.apps.63291274114-3g4e3237ffi0qc6rlmudqj1mg604t7ej:/oauth2redirect"
         ]
 
         let response: TokenResponse = try await apiClient.request(
