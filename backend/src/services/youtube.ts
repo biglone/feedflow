@@ -1,0 +1,243 @@
+import { google, youtube_v3 } from "googleapis";
+
+const youtube = google.youtube({
+  version: "v3",
+  auth: process.env.YOUTUBE_API_KEY,
+});
+
+export interface YouTubeChannel {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  subscriberCount: string;
+  videoCount: string;
+  customUrl?: string;
+}
+
+export interface YouTubeVideo {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  publishedAt: string;
+  duration?: string;
+  viewCount?: string;
+  channelId: string;
+  channelTitle: string;
+}
+
+export async function searchChannels(
+  query: string,
+  maxResults: number = 10
+): Promise<YouTubeChannel[]> {
+  const response = await youtube.search.list({
+    part: ["snippet"],
+    q: query,
+    type: ["channel"],
+    maxResults,
+  });
+
+  const channelIds =
+    response.data.items
+      ?.map((item) => item.snippet?.channelId)
+      .filter(Boolean) as string[];
+
+  if (!channelIds?.length) {
+    return [];
+  }
+
+  // Get detailed channel info
+  const channelResponse = await youtube.channels.list({
+    part: ["snippet", "statistics"],
+    id: channelIds,
+  });
+
+  return (
+    channelResponse.data.items?.map((channel) => ({
+      id: channel.id!,
+      title: channel.snippet?.title || "Unknown",
+      description: channel.snippet?.description || "",
+      thumbnailUrl:
+        channel.snippet?.thumbnails?.medium?.url ||
+        channel.snippet?.thumbnails?.default?.url ||
+        "",
+      subscriberCount: channel.statistics?.subscriberCount || "0",
+      videoCount: channel.statistics?.videoCount || "0",
+      customUrl: channel.snippet?.customUrl,
+    })) || []
+  );
+}
+
+export async function getChannelInfo(
+  channelId: string
+): Promise<YouTubeChannel | null> {
+  const response = await youtube.channels.list({
+    part: ["snippet", "statistics"],
+    id: [channelId],
+  });
+
+  const channel = response.data.items?.[0];
+  if (!channel) return null;
+
+  return {
+    id: channel.id!,
+    title: channel.snippet?.title || "Unknown",
+    description: channel.snippet?.description || "",
+    thumbnailUrl:
+      channel.snippet?.thumbnails?.medium?.url ||
+      channel.snippet?.thumbnails?.default?.url ||
+      "",
+    subscriberCount: channel.statistics?.subscriberCount || "0",
+    videoCount: channel.statistics?.videoCount || "0",
+    customUrl: channel.snippet?.customUrl,
+  };
+}
+
+export async function getChannelVideos(
+  channelId: string,
+  maxResults: number = 20
+): Promise<YouTubeVideo[]> {
+  const response = await youtube.search.list({
+    part: ["snippet"],
+    channelId,
+    order: "date",
+    type: ["video"],
+    maxResults,
+  });
+
+  const videoIds =
+    response.data.items?.map((item) => item.id?.videoId).filter(Boolean) as
+      | string[]
+      | undefined;
+
+  if (!videoIds?.length) {
+    return [];
+  }
+
+  // Get video details (duration, view count)
+  const videoResponse = await youtube.videos.list({
+    part: ["snippet", "contentDetails", "statistics"],
+    id: videoIds,
+  });
+
+  return (
+    videoResponse.data.items?.map((video) => ({
+      id: video.id!,
+      title: video.snippet?.title || "Untitled",
+      description: video.snippet?.description || "",
+      thumbnailUrl:
+        video.snippet?.thumbnails?.medium?.url ||
+        video.snippet?.thumbnails?.default?.url ||
+        "",
+      publishedAt: video.snippet?.publishedAt || "",
+      duration: video.contentDetails?.duration || "",
+      viewCount: video.statistics?.viewCount || "0",
+      channelId: video.snippet?.channelId || "",
+      channelTitle: video.snippet?.channelTitle || "",
+    })) || []
+  );
+}
+
+// Convert various YouTube URL formats to channel ID
+export async function resolveChannelUrl(
+  url: string
+): Promise<{ channelId: string; rssUrl: string } | null> {
+  const urlObj = new URL(url);
+
+  // Direct channel ID: youtube.com/channel/UCxxxx
+  const channelMatch = url.match(/youtube\.com\/channel\/(UC[\w-]+)/);
+  if (channelMatch) {
+    return {
+      channelId: channelMatch[1],
+      rssUrl: `https://www.youtube.com/feeds/videos.xml?channel_id=${channelMatch[1]}`,
+    };
+  }
+
+  // Handle @username format: youtube.com/@username
+  const handleMatch = url.match(/youtube\.com\/@([\w-]+)/);
+  if (handleMatch) {
+    const response = await youtube.search.list({
+      part: ["snippet"],
+      q: handleMatch[1],
+      type: ["channel"],
+      maxResults: 1,
+    });
+
+    const channelId = response.data.items?.[0]?.snippet?.channelId;
+    if (channelId) {
+      return {
+        channelId,
+        rssUrl: `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`,
+      };
+    }
+  }
+
+  // Handle /c/channelname format
+  const customMatch = url.match(/youtube\.com\/c\/([\w-]+)/);
+  if (customMatch) {
+    const response = await youtube.search.list({
+      part: ["snippet"],
+      q: customMatch[1],
+      type: ["channel"],
+      maxResults: 1,
+    });
+
+    const channelId = response.data.items?.[0]?.snippet?.channelId;
+    if (channelId) {
+      return {
+        channelId,
+        rssUrl: `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`,
+      };
+    }
+  }
+
+  // Handle /user/username format (legacy)
+  const userMatch = url.match(/youtube\.com\/user\/([\w-]+)/);
+  if (userMatch) {
+    const response = await youtube.channels.list({
+      part: ["id"],
+      forUsername: userMatch[1],
+    });
+
+    const channelId = response.data.items?.[0]?.id;
+    if (channelId) {
+      return {
+        channelId,
+        rssUrl: `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`,
+      };
+    }
+  }
+
+  return null;
+}
+
+// Generate RSS feed URL from channel ID
+export function getChannelRssUrl(channelId: string): string {
+  return `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+}
+
+// Parse ISO 8601 duration to seconds
+export function parseDuration(isoDuration: string): number {
+  const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+
+  const hours = parseInt(match[1] || "0");
+  const minutes = parseInt(match[2] || "0");
+  const seconds = parseInt(match[3] || "0");
+
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+// Format duration to human readable string
+export function formatDuration(isoDuration: string): string {
+  const totalSeconds = parseDuration(isoDuration);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  }
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
