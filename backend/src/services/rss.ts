@@ -1,5 +1,5 @@
 import Parser from "rss-parser";
-import { resolveChannelUrl } from "./youtube";
+import { resolveChannelUrl } from "./youtube.js";
 
 const parser = new Parser({
   customFields: {

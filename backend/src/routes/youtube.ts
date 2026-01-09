@@ -9,8 +9,8 @@ import {
   getChannelRssUrl,
   formatDuration,
   getSubscriptions,
-} from "../services/youtube";
-import { getStreamUrls, getVideoInfo } from "../services/ytdlp";
+} from "../services/youtube.js";
+import { getStreamUrls, getVideoInfo } from "../services/ytdlp.js";
 
 const youtubeRouter = new Hono();
 

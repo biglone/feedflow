@@ -2,10 +2,10 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { eq, and, desc } from "drizzle-orm";
-import { db } from "../db";
-import { feeds, articles, articleReadStatus, articleStarStatus } from "../db/schema";
-import { getUserIdFromContext } from "../lib/auth";
-import { fetchAndParseFeed } from "../services/rss";
+import { db } from "../db/index.js";
+import { feeds, articles, articleReadStatus, articleStarStatus } from "../db/schema.js";
+import { getUserIdFromContext } from "../lib/auth.js";
+import { fetchAndParseFeed } from "../services/rss.js";
 
 const feedsRouter = new Hono();
 

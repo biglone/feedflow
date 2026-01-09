@@ -3,10 +3,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { serve } from "@hono/node-server";
-import { authRouter } from "./routes/auth";
-import { feedsRouter } from "./routes/feeds";
-import { articlesRouter } from "./routes/articles";
-import { youtubeRouter } from "./routes/youtube";
+import { authRouter } from "./routes/auth.js";
+import { feedsRouter } from "./routes/feeds.js";
+import { articlesRouter } from "./routes/articles.js";
+import { youtubeRouter } from "./routes/youtube.js";
 
 const app = new Hono();
 

@@ -2,14 +2,14 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { eq, and, desc, inArray } from "drizzle-orm";
-import { db } from "../db";
+import { db } from "../db/index.js";
 import {
   articles,
   feeds,
   articleReadStatus,
   articleStarStatus,
-} from "../db/schema";
-import { getUserIdFromContext } from "../lib/auth";
+} from "../db/schema.js";
+import { getUserIdFromContext } from "../lib/auth.js";
 
 const articlesRouter = new Hono();
 

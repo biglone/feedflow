@@ -2,9 +2,9 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { users } from "../db/schema";
-import { hashPassword, verifyPassword, createToken } from "../lib/auth";
+import { db } from "../db/index.js";
+import { users } from "../db/schema.js";
+import { hashPassword, verifyPassword, createToken } from "../lib/auth.js";
 
 const authRouter = new Hono();
 
