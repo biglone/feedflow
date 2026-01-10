@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import SwiftData
 import WebKit
@@ -150,58 +151,36 @@ struct ArticleReaderView: View {
     }
 
     private var youtubeVideoId: String? {
-        if let urlString = article.articleURL,
-           let videoId = extractYouTubeVideoId(from: urlString) {
-            return videoId
-        }
-
-        return extractYouTubeVideoId(from: article.guid)
+        extractYouTubeVideoId(from: article.articleURL)
+            ?? extractYouTubeVideoId(from: article.guid)
+            ?? extractYouTubeVideoId(from: article.imageURL)
+            ?? extractYouTubeVideoId(from: article.content)
+            ?? extractYouTubeVideoId(from: article.summary)
     }
 
-    private func extractYouTubeVideoId(from value: String) -> String? {
-        // YouTube RSS/Atom guid format: "yt:video:<VIDEO_ID>"
-        if value.contains("yt:video:") {
-            if let last = value.split(separator: ":").last, !last.isEmpty {
-                return String(last)
-            }
+    private func extractYouTubeVideoId(from value: String?) -> String? {
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return nil
         }
 
-        guard let url = URL(string: value) else { return nil }
-        let host = url.host?.lowercased() ?? ""
+        let patterns = [
+            #"(?:yt:video:|video:)([A-Za-z0-9_-]{11})"#,
+            #"youtu\.be/([A-Za-z0-9_-]{11})"#,
+            #"youtube\.com/watch\?[^"'\s]*v=([A-Za-z0-9_-]{11})"#,
+            #"youtube\.com/shorts/([A-Za-z0-9_-]{11})"#,
+            #"youtube\.com/embed/([A-Za-z0-9_-]{11})"#,
+            #"ytimg\.com/vi/([A-Za-z0-9_-]{11})"#,
+        ]
 
-        // Handle youtu.be short URLs
-        if host == "youtu.be" {
-            return url.pathComponents.dropFirst().first
-        }
-
-        // Handle youtube.com URLs
-        if host.contains("youtube.com") {
-            // Standard watch URL: youtube.com/watch?v=VIDEO_ID
-            if let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
-               let videoId = queryItems.first(where: { $0.name == "v" })?.value {
-                return videoId
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+                continue
             }
-
-            // Shorts URL: youtube.com/shorts/VIDEO_ID
-            if url.pathComponents.contains("shorts"),
-               let index = url.pathComponents.firstIndex(of: "shorts"),
-               index + 1 < url.pathComponents.count {
-                return url.pathComponents[index + 1]
-            }
-
-            // Embed URL: youtube.com/embed/VIDEO_ID
-            if url.pathComponents.contains("embed"),
-               let index = url.pathComponents.firstIndex(of: "embed"),
-               index + 1 < url.pathComponents.count {
-                return url.pathComponents[index + 1]
-            }
-
-            // Legacy URL: youtube.com/v/VIDEO_ID
-            if url.pathComponents.contains("v"),
-               let index = url.pathComponents.firstIndex(of: "v"),
-               index + 1 < url.pathComponents.count {
-                return url.pathComponents[index + 1]
-            }
+            let range = NSRange(value.startIndex..., in: value)
+            guard let match = regex.firstMatch(in: value, options: [], range: range) else { continue }
+            guard match.numberOfRanges > 1 else { continue }
+            guard let idRange = Range(match.range(at: 1), in: value) else { continue }
+            return String(value[idRange])
         }
 
         return nil
