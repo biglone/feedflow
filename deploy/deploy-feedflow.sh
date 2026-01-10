@@ -49,9 +49,10 @@ systemctl --user stop "$BACKEND_SERVICE" || true
 git -C "$REPO_DIR" reset --hard "origin/$BRANCH"
 git -C "$REPO_DIR" clean -fd \
   -e "$BACKEND_DIR/.env" \
-  -e "$BACKEND_DIR/.env.*"
+  -e "$BACKEND_DIR/.env.*" \
+  -e "$BACKEND_DIR/node_modules"
 
-if [[ "$NEEDS_NPM_CI" == "1" ]]; then
+if [[ "$NEEDS_NPM_CI" == "1" ]] || [[ ! -d "$REPO_DIR/$BACKEND_DIR/node_modules" ]]; then
   echo "[deploy] npm ci (backend deps changed)"
   (cd "$REPO_DIR/$BACKEND_DIR" && npm ci --no-fund --no-audit)
 fi
