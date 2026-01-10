@@ -217,17 +217,11 @@ class FeedManager: ObservableObject {
         let descriptor = FetchDescriptor<Feed>()
         guard let feeds = try? modelContext.fetch(descriptor) else { return }
 
-        await withTaskGroup(of: Void.self) { group in
-            for feed in feeds {
-                group.addTask { [weak self] in
-                    do {
-                        try await self?.refreshFeed(feed)
-                    } catch {
-                        await MainActor.run {
-                            self?.error = error
-                        }
-                    }
-                }
+        for feed in feeds {
+            do {
+                try await refreshFeed(feed)
+            } catch {
+                self.error = error
             }
         }
     }

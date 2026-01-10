@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="32700" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="LaunchController">
+    <device id="retina6_7" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22692"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Launch Screen-->
+        <scene sceneID="LaunchScene">
+            <objects>
+                <viewController storyboardIdentifier="LaunchScreen" id="LaunchController" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="LaunchView">
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="FeedFlowLogo" translatesAutoresizingMaskIntoConstraints="NO" id="LogoImage">
+                                <rect key="frame" x="127" y="312" width="160" height="160"/>
+                            </imageView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="FeedFlow" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumScaleFactor="0.5" translatesAutoresizingMaskIntoConstraints="NO" id="TitleLabel">
+                                <rect key="frame" x="132" y="492" width="150" height="28"/>
+                                <fontDescription key="fontDescription" type="boldSystem" pointSize="24"/>
+                                <color key="textColor" red="0.85999999999999999" green="0.93700000000000006" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="SafeArea"/>
+                        <color key="backgroundColor" red="0.027450980390000001" green="0.062745098039999999" blue="0.14117647059999999" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="LogoImage" firstAttribute="centerX" secondItem="SafeArea" secondAttribute="centerX" id="LogoCenterX"/>
+                            <constraint firstItem="LogoImage" firstAttribute="centerY" secondItem="SafeArea" secondAttribute="centerY" constant="-30" id="LogoCenterY"/>
+                            <constraint firstItem="LogoImage" firstAttribute="width" secondItem="SafeArea" secondAttribute="width" multiplier="0.35" id="LogoWidth"/>
+                            <constraint firstItem="LogoImage" firstAttribute="height" secondItem="LogoImage" secondAttribute="width" multiplier="1" id="LogoHeight"/>
+                            <constraint firstItem="TitleLabel" firstAttribute="centerX" secondItem="SafeArea" secondAttribute="centerX" id="LabelCenterX"/>
+                            <constraint firstItem="TitleLabel" firstAttribute="top" secondItem="LogoImage" secondAttribute="bottom" constant="20" id="LabelTop"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="FirstResponder" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="FeedFlowLogo" width="1024" height="1024"/>
+    </resources>
+</document>

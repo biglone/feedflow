@@ -56,7 +56,7 @@ struct ArticleReaderView: View {
                 .padding(.horizontal)
 
                 // YouTube Play Button
-                if let videoId = youtubeVideoId {
+                if youtubeVideoId != nil {
                     Button {
                         showingVideoPlayer = true
                     } label: {
