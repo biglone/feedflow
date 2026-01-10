@@ -26,6 +26,7 @@
 Webhook + 部署脚本使用 systemd 环境文件（不要提交到 git）：
 
 - `~/.config/feedflow/deploy.env`（从 `deploy/systemd/deploy.env.example` 复制）
+- `~/.config/feedflow/backend.env`（可选；从 `deploy/systemd/backend.env.example` 复制，用于给 systemd 后端服务配置代理等环境变量）
 
 ## 3) systemd（user）服务
 
