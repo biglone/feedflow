@@ -1,0 +1,15 @@
+[Unit]
+Description=FeedFlow GitHub Deploy Webhook
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/workspace/feedflow-prod
+Environment=NODE_ENV=production
+EnvironmentFile=%h/.config/feedflow/deploy.env
+ExecStart=/usr/bin/env node deploy/github-webhook-server.mjs
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

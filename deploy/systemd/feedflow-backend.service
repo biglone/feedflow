@@ -1,0 +1,15 @@
+[Unit]
+Description=FeedFlow Backend API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/workspace/feedflow-prod/backend
+Environment=NODE_ENV=production
+EnvironmentFile=-%h/.config/feedflow/backend.env
+ExecStart=/usr/bin/env bash -lc 'npm start'
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
