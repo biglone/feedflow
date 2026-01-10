@@ -69,7 +69,7 @@ export async function searchChannels(
           "",
         subscriberCount: channel.statistics?.subscriberCount || "0",
         videoCount: channel.statistics?.videoCount || "0",
-        customUrl: channel.snippet?.customUrl,
+        customUrl: channel.snippet?.customUrl ?? undefined,
       })) || []
     );
   } catch (error: any) {
@@ -105,7 +105,7 @@ export async function getChannelInfo(
       "",
     subscriberCount: channel.statistics?.subscriberCount || "0",
     videoCount: channel.statistics?.videoCount || "0",
-    customUrl: channel.snippet?.customUrl,
+    customUrl: channel.snippet?.customUrl ?? undefined,
   };
 }
 

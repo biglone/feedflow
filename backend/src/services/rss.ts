@@ -92,7 +92,7 @@ export async function fetchAndParseFeed(url: string): Promise<ParsedFeed> {
       content: content || null,
       summary: summary || null,
       url: item.link || null,
-      author: item.creator || item.author || null,
+      author: item.creator || (item as any).author || null,
       imageUrl,
       publishedAt: item.pubDate ? new Date(item.pubDate) : null,
     };

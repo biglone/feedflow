@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { ProxyAgent, fetch as undiciFetch } from "undici";
+import { ProxyAgent, fetch as undiciFetch, type HeadersInit } from "undici";
 import { HTTPException } from "hono/http-exception";
 import {
   searchChannels,
@@ -71,6 +71,16 @@ const tokenSchema = z.object({
   redirectUri: z.string().optional(),
 });
 
+const googleTokenResponseSchema = z
+  .object({
+    access_token: z.string().optional(),
+    refresh_token: z.string().optional(),
+    expires_in: z.number().optional(),
+    error: z.string().optional(),
+    error_description: z.string().optional(),
+  })
+  .passthrough();
+
 youtubeRouter.post("/oauth/token", zValidator("json", tokenSchema), async (c) => {
   const { code, redirectUri } = c.req.valid("json");
 
@@ -93,11 +103,20 @@ youtubeRouter.post("/oauth/token", zValidator("json", tokenSchema), async (c) =>
       }),
     });
 
-    const data = await response.json();
+    const parsed = googleTokenResponseSchema.safeParse(await response.json());
+    if (!parsed.success) {
+      console.error("OAuth token response parse error:", parsed.error);
+      return c.json({ error: "Invalid token response from Google" }, 502);
+    }
+    const data = parsed.data;
 
     if (!response.ok) {
       console.error("OAuth token error:", data);
       return c.json({ error: data.error_description || "Failed to exchange code" }, 400);
+    }
+
+    if (!data.access_token) {
+      return c.json({ error: "Missing access token in Google response" }, 502);
     }
 
     return c.json({
