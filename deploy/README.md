@@ -74,6 +74,18 @@ location /_deploy/github {
 }
 ```
 
+如果你使用 Cloudflare Tunnel（cloudflared），需要把 `/_deploy/github` 路径转发到 `http://localhost:9010`，并把站点其余路径转发到后端 `http://localhost:3000`，例如：
+
+```yaml
+ingress:
+  - hostname: feedflow.example.com
+    path: /_deploy/github
+    service: http://localhost:9010
+  - hostname: feedflow.example.com
+    service: http://localhost:3000
+  - service: http_status:404
+```
+
 ## 安全要点
 
 - 必须设置 `GITHUB_WEBHOOK_SECRET`，服务端会校验 `X-Hub-Signature-256`（默认不接受 SHA1）。
