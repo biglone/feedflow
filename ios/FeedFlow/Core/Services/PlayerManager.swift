@@ -31,6 +31,7 @@ class PlayerManager: ObservableObject {
     private var player: AVPlayer?
     private var timeObserver: Any?
     private var playerItemObserver: NSKeyValueObservation?
+    private var audioSessionConfigured = false
 
     // Store playback progress for each video (videoId -> time in seconds)
     private var playbackProgress: [String: TimeInterval] = [:]
@@ -41,23 +42,38 @@ class PlayerManager: ObservableObject {
         if let saved = UserDefaults.standard.dictionary(forKey: progressKey) as? [String: TimeInterval] {
             playbackProgress = saved
         }
-        setupAudioSession()
         setupRemoteCommands()
     }
 
-    // MARK: - Audio Session Setup
+    // MARK: - Audio Session
 
-    private func setupAudioSession() {
+    private func configureAudioSessionIfNeeded() {
+        guard !audioSessionConfigured else { return }
+
+        let audioSession = AVAudioSession.sharedInstance()
         do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(
-                .playback,
-                mode: .default,
-                options: [.allowAirPlay, .allowBluetoothA2DP, .allowBluetoothHFP]
-            )
-            try audioSession.setActive(true)
+            try audioSession.setCategory(.playback)
+            audioSessionConfigured = true
         } catch {
-            print("Failed to setup audio session: \(error)")
+            print("Failed to configure audio session: \(error)")
+        }
+    }
+
+    private func activateAudioSession() {
+        configureAudioSessionIfNeeded()
+        do {
+            try AVAudioSession.sharedInstance().setActive(true, options: [])
+        } catch {
+            print("Failed to activate audio session: \(error)")
+        }
+    }
+
+    private func deactivateAudioSession() {
+        guard !isPlaying else { return }
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+        } catch {
+            print("Failed to deactivate audio session: \(error)")
         }
     }
 
@@ -156,11 +172,11 @@ class PlayerManager: ObservableObject {
                 case .readyToPlay:
                     self?.isLoading = false
                     self?.duration = item.duration.seconds.isNaN ? 0 : item.duration.seconds
-                    // Seek to saved progress if available
                     if let progress = savedProgress, progress > 0 {
-                        self?.seek(to: progress)
+                        self?.seekAndPlay(to: progress)
+                    } else {
+                        self?.play()
                     }
-                    self?.play()
                     self?.updateNowPlayingInfo()
                 case .failed:
                     self?.isLoading = false
@@ -195,20 +211,40 @@ class PlayerManager: ObservableObject {
             Task { @MainActor in
                 self?.isPlaying = false
                 self?.currentTime = 0
+                self?.deactivateAudioSession()
             }
         }
     }
 
     func play() {
+        activateAudioSession()
         player?.play()
         isPlaying = true
         updateNowPlayingInfo()
+    }
+
+    func seekAndPlay(to time: TimeInterval) {
+        guard let player = player else { return }
+        activateAudioSession()
+        isPlaying = false
+        player.seek(
+            to: CMTime(seconds: time, preferredTimescale: 600),
+            toleranceBefore: CMTime(value: 1, timescale: 600),
+            toleranceAfter: CMTime(value: 1, timescale: 600)
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.player?.play()
+            self.isPlaying = true
+            self.currentTime = time
+            self.updateNowPlayingInfo()
+        }
     }
 
     func pause() {
         player?.pause()
         isPlaying = false
         updateNowPlayingInfo()
+        deactivateAudioSession()
     }
 
     func togglePlayPause() {
@@ -237,6 +273,7 @@ class PlayerManager: ObservableObject {
         nowPlayingInfo = nil
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        deactivateAudioSession()
     }
 
     func seek(to time: TimeInterval) {

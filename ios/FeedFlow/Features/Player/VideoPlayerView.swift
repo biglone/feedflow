@@ -129,8 +129,9 @@ struct VideoPlayerView: View {
                 }
             }
         }
-        .task {
-            await loadVideo()
+        .task(id: videoId) {
+            playerManager.playbackMode = .video
+            await loadVideo(forceReload: true)
         }
         .onDisappear {
             hideControlsTask?.cancel()

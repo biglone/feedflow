@@ -34,13 +34,13 @@ actor APIClient {
     private let encoder: JSONEncoder
 
     // Debug builds can switch between remote and local API endpoints via the Settings toggle.
-    private var baseURL: String {
+    nonisolated private var baseURL: String {
         #if DEBUG
         if UserDefaults.standard.bool(forKey: "useLocalAPI") {
             return "http://172.16.1.16:3000/api"
         }
         #endif
-        return "https://feedflow-silk.vercel.app/api"
+        return "https://feedflow.biglone.tech/api"
     }
 
     private init() {
@@ -294,13 +294,14 @@ actor APIClient {
         let customUrl: String?
     }
 
-    struct YouTubeVideoDTO: Decodable {
+    struct YouTubeVideoDTO: Decodable, Identifiable {
         let id: String
         let title: String
         let description: String
         let thumbnailUrl: String
         let publishedAt: String
         let formattedDuration: String?
+        let durationSeconds: Int?
         let viewCount: String?
         let channelId: String
         let channelTitle: String
@@ -318,8 +319,33 @@ actor APIClient {
         let videos: [YouTubeVideoDTO]
     }
 
+    struct ChannelVideosDTO: Decodable, Identifiable {
+        let channel: YouTubeChannelDTO
+        let videos: [YouTubeVideoDTO]
+
+        var id: String { channel.id }
+    }
+
+    struct SubscriptionVideosResponse: Decodable {
+        let channels: [ChannelVideosDTO]
+    }
+
     struct YouTubeResolveRequest: Encodable {
         let url: String
+    }
+
+    func getYouTubeSubscriptionVideos(accessToken: String, perChannelLimit: Int = 50, maxChannels: Int? = nil) async throws -> [ChannelVideosDTO] {
+        var path = "/youtube/subscriptions/videos?perChannelLimit=\(perChannelLimit)"
+        if let maxChannels, maxChannels > 0 {
+            path += "&maxChannels=\(maxChannels)"
+        }
+
+        let response: SubscriptionVideosResponse = try await requestWithToken(
+            method: "GET",
+            path: path,
+            token: accessToken
+        )
+        return response.channels
     }
 
     struct YouTubeResolveResponse: Decodable {
@@ -379,6 +405,10 @@ actor APIClient {
         return try await request(
             endpoint: "/youtube/stream/\(videoId)?type=\(type)"
         )
+    }
+
+    nonisolated func getYouTubeDownloadURL(videoId: String, type: String = "video") -> URL {
+        return URL(string: "\(baseURL)/youtube/download/\(videoId)?type=\(type)")!
     }
 
     // MARK: - Generic Request Methods
