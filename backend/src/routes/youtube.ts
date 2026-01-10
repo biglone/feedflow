@@ -19,6 +19,34 @@ import {
   type StreamType,
 } from "../lib/streamToken.js";
 
+function extractYtdlpErrorMessage(error: unknown): string | undefined {
+  const anyError = error as any;
+  const candidates = [
+    anyError?.stderr,
+    anyError?.stdout,
+    anyError?.message,
+  ].filter(Boolean);
+
+  if (candidates.length === 0) return undefined;
+
+  const raw = candidates
+    .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
+    .join("\n");
+
+  const line =
+    raw
+      .split("\n")
+      .map((l) => l.trim())
+      .find((l) => l.startsWith("ERROR:")) || raw.trim();
+
+  const cleaned = line.replace(
+    /^ERROR:\s*(?:\[[^\]]+\]\s*)?(?:[A-Za-z0-9_-]{11}:)?\s*/i,
+    ""
+  );
+
+  return cleaned.slice(0, 2000);
+}
+
 // Proxy configuration
 const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY;
 const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
@@ -339,6 +367,29 @@ youtubeRouter.get(
     } catch (error) {
       if (error instanceof HTTPException) throw error;
       console.error("Get stream error:", error);
+
+      const ytdlpMessage = extractYtdlpErrorMessage(error);
+
+      if (
+        ytdlpMessage &&
+        /This live event will begin in/i.test(ytdlpMessage)
+      ) {
+        return c.json(
+          { error: ytdlpMessage, code: "LIVE_NOT_STARTED" },
+          409
+        );
+      }
+
+      const debug =
+        c.req.header("x-feedflow-debug") === "1" ||
+        c.req.query("debug") === "1";
+      if (debug && ytdlpMessage) {
+        return c.json(
+          { error: "Failed to get stream URLs", details: ytdlpMessage },
+          500
+        );
+      }
+
       return c.json({ error: "Failed to get stream URLs" }, 500);
     }
   }
