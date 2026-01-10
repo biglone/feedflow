@@ -13,7 +13,6 @@ import {
   getSubscriptions,
 } from "../services/youtube.js";
 import { getStreamUrls, getVideoInfo } from "../services/ytdlp.js";
-import { getUserIdFromContext } from "../lib/auth.js";
 import {
   createStreamProxySignature,
   verifyStreamProxySignature,
@@ -27,6 +26,7 @@ const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 const youtubeRouter = new Hono();
 
 const streamProxySecret = process.env.STREAM_PROXY_SECRET;
+const streamProxyAccessToken = process.env.STREAM_PROXY_ACCESS_TOKEN;
 const streamProxyTtlSeconds = parseInt(
   process.env.STREAM_PROXY_TTL_SECONDS || "21600",
   10
@@ -263,14 +263,19 @@ youtubeRouter.get(
     const { type } = c.req.valid("query");
 
     try {
-      if (streamProxySecret) {
-        await getUserIdFromContext(c);
+      if (streamProxySecret && streamProxyAccessToken) {
+        const provided = c.req.header("x-feedflow-stream-token");
+        if (!provided || provided !== streamProxyAccessToken) {
+          return c.json({ error: "Unauthorized" }, 401);
+        }
       }
 
       const streams = await getStreamUrls(videoId);
 
       // Build proxy URLs instead of direct YouTube URLs
-      const protocol = c.req.header("x-forwarded-proto") || "https";
+      const protocol =
+        c.req.header("x-forwarded-proto") ||
+        new URL(c.req.url).protocol.replace(":", "");
       const host = c.req.header("host") || "localhost:3000";
       const baseUrl = `${protocol}://${host}/api/youtube/proxy/${videoId}`;
       const exp = Math.floor(Date.now() / 1000) + streamProxyTtlSeconds;

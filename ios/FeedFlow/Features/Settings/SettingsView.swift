@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage("markAsReadOnScroll") private var markAsReadOnScroll: Bool = false
     @AppStorage("openLinksInApp") private var openLinksInApp: Bool = true
     @AppStorage("fontSize") private var fontSize: Double = 17
+    @AppStorage("streamProxyAccessToken") private var streamProxyAccessToken: String = ""
     #if DEBUG
     @AppStorage("useLocalAPI") private var useLocalAPI: Bool = false
     #endif
@@ -145,6 +146,16 @@ struct SettingsView: View {
                     } label: {
                         Label("Clear All Data", systemImage: "trash")
                     }
+                }
+
+                // Backend Section
+                Section("Backend") {
+                    SecureField("YouTube Stream Token", text: $streamProxyAccessToken)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Text("Matches backend STREAM_PROXY_ACCESS_TOKEN (used to mint signed /api/youtube/proxy URLs).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 // About Section

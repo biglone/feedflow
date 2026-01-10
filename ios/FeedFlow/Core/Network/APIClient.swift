@@ -64,7 +64,8 @@ actor APIClient {
     private func request<T: Decodable>(
         endpoint: String,
         method: String = "GET",
-        body: Encodable? = nil
+        body: Encodable? = nil,
+        headers extraHeaders: [String: String] = [:]
     ) async throws -> T {
         guard let url = URL(string: "\(baseURL)\(endpoint)") else {
             throw APIError.invalidURL
@@ -73,6 +74,10 @@ actor APIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        for (key, value) in extraHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
 
         if let token = authToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -402,8 +407,15 @@ actor APIClient {
     }
 
     func getYouTubeStreamUrls(videoId: String, type: String = "both") async throws -> YouTubeStreamResponse {
+        var extraHeaders: [String: String] = [:]
+        let streamProxyToken = UserDefaults.standard.string(forKey: "streamProxyAccessToken") ?? ""
+        if !streamProxyToken.isEmpty {
+            extraHeaders["X-FeedFlow-Stream-Token"] = streamProxyToken
+        }
+
         return try await request(
-            endpoint: "/youtube/stream/\(videoId)?type=\(type)"
+            endpoint: "/youtube/stream/\(videoId)?type=\(type)",
+            headers: extraHeaders
         )
     }
 
