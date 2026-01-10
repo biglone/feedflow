@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { ProxyAgent, fetch as undiciFetch } from "undici";
+import { HTTPException } from "hono/http-exception";
 import {
   searchChannels,
   getChannelInfo,
@@ -12,12 +13,28 @@ import {
   getSubscriptions,
 } from "../services/youtube.js";
 import { getStreamUrls, getVideoInfo } from "../services/ytdlp.js";
+import { getUserIdFromContext } from "../lib/auth.js";
+import {
+  createStreamProxySignature,
+  verifyStreamProxySignature,
+  type StreamType,
+} from "../lib/streamToken.js";
 
 // Proxy configuration
 const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY;
 const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 
 const youtubeRouter = new Hono();
+
+const streamProxySecret = process.env.STREAM_PROXY_SECRET;
+const streamProxyTtlSeconds = parseInt(
+  process.env.STREAM_PROXY_TTL_SECONDS || "21600",
+  10
+);
+const streamProxyClockSkewSeconds = parseInt(
+  process.env.STREAM_PROXY_CLOCK_SKEW_SECONDS || "30",
+  10
+);
 
 // Google OAuth2 configuration
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -246,12 +263,36 @@ youtubeRouter.get(
     const { type } = c.req.valid("query");
 
     try {
+      if (streamProxySecret) {
+        await getUserIdFromContext(c);
+      }
+
       const streams = await getStreamUrls(videoId);
 
       // Build proxy URLs instead of direct YouTube URLs
       const protocol = c.req.header("x-forwarded-proto") || "https";
       const host = c.req.header("host") || "localhost:3000";
       const baseUrl = `${protocol}://${host}/api/youtube/proxy/${videoId}`;
+      const exp = Math.floor(Date.now() / 1000) + streamProxyTtlSeconds;
+
+      const buildProxyUrl = (streamType: StreamType) => {
+        if (!streamProxySecret) return `${baseUrl}?type=${streamType}`;
+
+        const sig = createStreamProxySignature({
+          secret: streamProxySecret,
+          videoId,
+          type: streamType,
+          exp,
+        });
+
+        const qs = new URLSearchParams({
+          type: streamType,
+          exp: String(exp),
+          sig,
+        });
+
+        return `${baseUrl}?${qs.toString()}`;
+      };
 
       const response: any = {
         title: streams.title,
@@ -260,10 +301,10 @@ youtubeRouter.get(
       };
 
       if (type === "video" || type === "both") {
-        response.videoUrl = streams.videoUrl ? `${baseUrl}?type=video` : null;
+        response.videoUrl = streams.videoUrl ? buildProxyUrl("video") : null;
       }
       if (type === "audio" || type === "both") {
-        response.audioUrl = streams.audioUrl ? `${baseUrl}?type=audio` : null;
+        response.audioUrl = streams.audioUrl ? buildProxyUrl("audio") : null;
       }
 
       if (!response.videoUrl && !response.audioUrl) {
@@ -272,6 +313,7 @@ youtubeRouter.get(
 
       return c.json(response);
     } catch (error) {
+      if (error instanceof HTTPException) throw error;
       console.error("Get stream error:", error);
       return c.json({ error: "Failed to get stream URLs" }, 500);
     }
@@ -281,6 +323,8 @@ youtubeRouter.get(
 // Proxy video/audio stream to bypass IP restrictions
 const proxySchema = z.object({
   type: z.enum(["video", "audio"]).optional().default("video"),
+  exp: z.string().optional(),
+  sig: z.string().optional(),
 });
 
 youtubeRouter.get(
@@ -288,9 +332,32 @@ youtubeRouter.get(
   zValidator("query", proxySchema),
   async (c) => {
     const videoId = c.req.param("id");
-    const { type } = c.req.valid("query");
+    const { type, exp: expRaw, sig } = c.req.valid("query");
 
     try {
+      if (streamProxySecret) {
+        if (!expRaw || !sig) {
+          return c.json({ error: "Missing stream token" }, 401);
+        }
+
+        const exp = parseInt(expRaw, 10);
+        const now = Math.floor(Date.now() / 1000);
+        if (!Number.isFinite(exp) || now - streamProxyClockSkewSeconds > exp) {
+          return c.json({ error: "Expired stream token" }, 401);
+        }
+
+        const ok = verifyStreamProxySignature({
+          secret: streamProxySecret,
+          videoId,
+          type,
+          exp,
+          sig,
+        });
+        if (!ok) {
+          return c.json({ error: "Invalid stream token" }, 403);
+        }
+      }
+
       const streams = await getStreamUrls(videoId);
       const streamUrl = type === "audio" ? streams.audioUrl : streams.videoUrl;
 

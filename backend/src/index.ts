@@ -8,6 +8,7 @@ import { authRouter } from "./routes/auth.js";
 import { feedsRouter } from "./routes/feeds.js";
 import { articlesRouter } from "./routes/articles.js";
 import { youtubeRouter } from "./routes/youtube.js";
+import { HTTPException } from "hono/http-exception";
 
 const app = new Hono();
 
@@ -40,13 +41,13 @@ app.route("/api/articles", articlesRouter);
 app.route("/api/youtube", youtubeRouter);
 
 app.onError((err, c) => {
-  console.error(`Error: ${err.message}`);
-  return c.json(
-    {
-      error: err.message || "Internal Server Error",
-    },
-    500
-  );
+  console.error(err);
+
+  if (err instanceof HTTPException) {
+    return c.json({ error: err.message }, err.status);
+  }
+
+  return c.json({ error: err.message || "Internal Server Error" }, 500);
 });
 
 app.notFound((c) => {
