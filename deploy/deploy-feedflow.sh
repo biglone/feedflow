@@ -69,7 +69,7 @@ fi
 NEEDS_NPM_CI=0
 if git -C "$REPO_DIR" diff --name-only "$LOCAL" "$REMOTE" -- \
   "$BACKEND_DIR/package.json" "$BACKEND_DIR/package-lock.json" \
-  | rg -q .; then
+  | grep -q .; then
   NEEDS_NPM_CI=1
 fi
 
