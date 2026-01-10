@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 enum APIError: Error, LocalizedError {
     case invalidURL
@@ -43,6 +44,10 @@ actor APIClient {
         return "https://feedflow.biglone.tech/api"
     }
 
+    nonisolated func currentBaseURL() -> String {
+        baseURL
+    }
+
     private init() {
         #if DEBUG
         UserDefaults.standard.register(defaults: ["useLocalAPI": false])
@@ -71,6 +76,13 @@ actor APIClient {
             throw APIError.invalidURL
         }
 
+        #if DEBUG
+        let networkDebugLogsEnabled = UserDefaults.standard.bool(forKey: "enableNetworkDebugLogs")
+        if networkDebugLogsEnabled {
+            AppLog.network.debug("HTTP \(method, privacy: .public) \(url.absoluteString, privacy: .public)")
+        }
+        #endif
+
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -87,11 +99,23 @@ actor APIClient {
             request.httpBody = try encoder.encode(body)
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            AppLog.network.error("HTTP \(method, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            throw error
+        }
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
+
+        #if DEBUG
+        if networkDebugLogsEnabled {
+            AppLog.network.debug("HTTP \(method, privacy: .public) \(httpResponse.statusCode, privacy: .public) \(url.absoluteString, privacy: .public)")
+        }
+        #endif
 
         if httpResponse.statusCode == 401 {
             throw APIError.unauthorized
@@ -99,14 +123,22 @@ actor APIClient {
 
         if httpResponse.statusCode >= 400 {
             if let errorResponse = try? decoder.decode(ErrorResponse.self, from: data) {
+                AppLog.network.error("HTTP \(method, privacy: .public) \(httpResponse.statusCode, privacy: .public) error: \(errorResponse.error, privacy: .public)")
                 throw APIError.serverError(errorResponse.error)
             }
+            AppLog.network.error("HTTP \(method, privacy: .public) \(httpResponse.statusCode, privacy: .public) error")
             throw APIError.serverError("Server error: \(httpResponse.statusCode)")
         }
 
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
+            #if DEBUG
+            if networkDebugLogsEnabled {
+                let bodyPreview = String(data: data.prefix(512), encoding: .utf8) ?? "<non-utf8>"
+                AppLog.network.error("Decode failed: \(bodyPreview, privacy: .public)")
+            }
+            #endif
             throw APIError.decodingError(error)
         }
     }
@@ -413,10 +445,31 @@ actor APIClient {
             extraHeaders["X-FeedFlow-Stream-Token"] = streamProxyToken
         }
 
-        return try await request(
-            endpoint: "/youtube/stream/\(videoId)?type=\(type)",
-            headers: extraHeaders
-        )
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: "enableNetworkDebugLogs") {
+            AppLog.player.debug(
+                "YouTube stream request videoId=\(videoId, privacy: .public) type=\(type, privacy: .public) token=\(!streamProxyToken.isEmpty, privacy: .public)"
+            )
+        }
+        #endif
+
+        do {
+            let response: YouTubeStreamResponse = try await request(
+                endpoint: "/youtube/stream/\(videoId)?type=\(type)",
+                headers: extraHeaders
+            )
+            #if DEBUG
+            if UserDefaults.standard.bool(forKey: "enableNetworkDebugLogs") {
+                AppLog.player.debug(
+                    "YouTube stream response videoId=\(videoId, privacy: .public) videoUrl=\(response.videoUrl != nil, privacy: .public) audioUrl=\(response.audioUrl != nil, privacy: .public) duration=\(response.duration, privacy: .public)"
+                )
+            }
+            #endif
+            return response
+        } catch {
+            AppLog.player.error("YouTube stream error videoId=\(videoId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            throw error
+        }
     }
 
     nonisolated func getYouTubeDownloadURL(videoId: String, type: String = "video") -> URL {

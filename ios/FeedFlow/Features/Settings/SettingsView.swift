@@ -12,6 +12,7 @@ struct SettingsView: View {
     @AppStorage("streamProxyAccessToken") private var streamProxyAccessToken: String = ""
     #if DEBUG
     @AppStorage("useLocalAPI") private var useLocalAPI: Bool = false
+    @AppStorage("enableNetworkDebugLogs") private var enableNetworkDebugLogs: Bool = false
     #endif
 
     @State private var showingAccountSheet = false
@@ -191,6 +192,11 @@ struct SettingsView: View {
                 Section("Developer") {
                     Toggle("Use Local API Server", isOn: $useLocalAPI)
                     Text("Connect to http://172.16.1.16:3000/api instead of the deployed backend.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Toggle("Enable Network Debug Logs", isOn: $enableNetworkDebugLogs)
+                    Text("Print request/response logs to the Xcode console (and Console.app).")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

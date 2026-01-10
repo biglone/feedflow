@@ -1,5 +1,7 @@
 import SwiftUI
 import AVKit
+import UIKit
+import os
 
 struct VideoPlayerView: View {
     let videoId: String
@@ -13,6 +15,7 @@ struct VideoPlayerView: View {
     @State private var isLoading = true
     @State private var error: Error?
     @State private var showingError = false
+    @State private var showingDebugCopied = false
     @State private var showControls = true
     @State private var hideControlsTask: Task<Void, Never>?
 
@@ -125,6 +128,10 @@ struct VideoPlayerView: View {
                             Task { await loadVideo() }
                         }
                         .buttonStyle(.borderedProminent)
+                        Button("Copy Debug Info") {
+                            copyDebugInfo(error: error)
+                        }
+                        .buttonStyle(.bordered)
                     }
                 }
             }
@@ -141,6 +148,11 @@ struct VideoPlayerView: View {
         } message: {
             Text(error?.localizedDescription ?? "Unknown error")
         }
+        .alert("Copied", isPresented: $showingDebugCopied) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Debug info copied to clipboard.")
+        }
     }
 
     private func loadVideo(forceReload: Bool = false) async {
@@ -150,6 +162,14 @@ struct VideoPlayerView: View {
             scheduleHideControls()
             return
         }
+
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: "enableNetworkDebugLogs") {
+            AppLog.player.info(
+                "Load video videoId=\(videoId, privacy: .public) mode=\(String(describing: playerManager.playbackMode), privacy: .public) forceReload=\(forceReload, privacy: .public)"
+            )
+        }
+        #endif
 
         isLoading = true
         error = nil
@@ -161,6 +181,9 @@ struct VideoPlayerView: View {
             let urlString = playerManager.playbackMode == .audio ? streams.audioUrl : streams.videoUrl
 
             guard let urlString = urlString, let url = URL(string: urlString) else {
+                AppLog.player.error(
+                    "No playable stream videoId=\(videoId, privacy: .public) mode=\(String(describing: playerManager.playbackMode), privacy: .public) videoUrl=\(streams.videoUrl != nil, privacy: .public) audioUrl=\(streams.audioUrl != nil, privacy: .public)"
+                )
                 throw NSError(domain: "VideoPlayer", code: -1, userInfo: [NSLocalizedDescriptionKey: "No playable stream found"])
             }
 
@@ -175,6 +198,7 @@ struct VideoPlayerView: View {
             isLoading = false
             scheduleHideControls()
         } catch {
+            AppLog.player.error("Load video failed videoId=\(videoId, privacy: .public): \(error.localizedDescription, privacy: .public)")
             self.error = error
             isLoading = false
         }
@@ -197,6 +221,52 @@ struct VideoPlayerView: View {
                 }
             }
         }
+    }
+
+    private func copyDebugInfo(error: Error) {
+        let debugInfo = buildDebugInfo(error: error)
+        UIPasteboard.general.string = debugInfo
+        AppLog.player.info("Copied debug info videoId=\(videoId, privacy: .public)")
+        #if DEBUG
+        print(debugInfo)
+        #endif
+        showingDebugCopied = true
+    }
+
+    private func buildDebugInfo(error: Error) -> String {
+        let date = ISO8601DateFormatter().string(from: Date())
+
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+
+        let device = "\(UIDevice.current.model) \(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
+
+        let streamProxyToken = UserDefaults.standard.string(forKey: "streamProxyAccessToken") ?? ""
+        let tokenStatus = streamProxyToken.isEmpty ? "missing" : "set(len:\(streamProxyToken.count))"
+
+        let mode = playerManager.playbackMode == .audio ? "audio" : "video"
+        let streamType = mode
+
+        let baseURL = apiClient.currentBaseURL()
+        let streamEndpoint = "\(baseURL)/youtube/stream/\(videoId)?type=\(streamType)"
+
+        return """
+        FeedFlow Debug Info
+        date=\(date)
+        app=\(version) (\(build))
+        device=\(device)
+        baseURL=\(baseURL)
+        streamEndpoint=\(streamEndpoint)
+        streamToken=\(tokenStatus)
+        videoId=\(videoId)
+        mode=\(mode)
+        title=\(title)
+        channelTitle=\(channelTitle)
+        thumbnailUrl=\(thumbnailUrl ?? "nil")
+        errorType=\(String(describing: type(of: error)))
+        error=\(String(describing: error))
+        localizedDescription=\(error.localizedDescription)
+        """
     }
 }
 
