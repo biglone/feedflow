@@ -232,11 +232,13 @@ class PlayerManager: ObservableObject {
             toleranceBefore: CMTime(value: 1, timescale: 600),
             toleranceAfter: CMTime(value: 1, timescale: 600)
         ) { [weak self] _ in
-            guard let self else { return }
-            self.player?.play()
-            self.isPlaying = true
-            self.currentTime = time
-            self.updateNowPlayingInfo()
+            Task { @MainActor in
+                guard let self else { return }
+                self.player?.play()
+                self.isPlaying = true
+                self.currentTime = time
+                self.updateNowPlayingInfo()
+            }
         }
     }
 
