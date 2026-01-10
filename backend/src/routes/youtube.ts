@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
+import { ProxyAgent, fetch as undiciFetch } from "undici";
 import {
   searchChannels,
   getChannelInfo,
@@ -11,6 +12,10 @@ import {
   getSubscriptions,
 } from "../services/youtube.js";
 import { getStreamUrls, getVideoInfo } from "../services/ytdlp.js";
+
+// Proxy configuration
+const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY;
+const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 
 const youtubeRouter = new Hono();
 
@@ -243,6 +248,11 @@ youtubeRouter.get(
     try {
       const streams = await getStreamUrls(videoId);
 
+      // Build proxy URLs instead of direct YouTube URLs
+      const protocol = c.req.header("x-forwarded-proto") || "https";
+      const host = c.req.header("host") || "localhost:3000";
+      const baseUrl = `${protocol}://${host}/api/youtube/proxy/${videoId}`;
+
       const response: any = {
         title: streams.title,
         duration: streams.duration,
@@ -250,10 +260,10 @@ youtubeRouter.get(
       };
 
       if (type === "video" || type === "both") {
-        response.videoUrl = streams.videoUrl;
+        response.videoUrl = streams.videoUrl ? `${baseUrl}?type=video` : null;
       }
       if (type === "audio" || type === "both") {
-        response.audioUrl = streams.audioUrl;
+        response.audioUrl = streams.audioUrl ? `${baseUrl}?type=audio` : null;
       }
 
       if (!response.videoUrl && !response.audioUrl) {
@@ -264,6 +274,67 @@ youtubeRouter.get(
     } catch (error) {
       console.error("Get stream error:", error);
       return c.json({ error: "Failed to get stream URLs" }, 500);
+    }
+  }
+);
+
+// Proxy video/audio stream to bypass IP restrictions
+const proxySchema = z.object({
+  type: z.enum(["video", "audio"]).optional().default("video"),
+});
+
+youtubeRouter.get(
+  "/proxy/:id",
+  zValidator("query", proxySchema),
+  async (c) => {
+    const videoId = c.req.param("id");
+    const { type } = c.req.valid("query");
+
+    try {
+      const streams = await getStreamUrls(videoId);
+      const streamUrl = type === "audio" ? streams.audioUrl : streams.videoUrl;
+
+      if (!streamUrl) {
+        return c.json({ error: "No stream URL found" }, 404);
+      }
+
+      // Forward range header for seeking support
+      const rangeHeader = c.req.header("Range");
+      const headers: HeadersInit = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      };
+      if (rangeHeader) {
+        headers["Range"] = rangeHeader;
+      }
+
+      const response = await undiciFetch(streamUrl, {
+        headers,
+        dispatcher: proxyAgent,
+      });
+
+      // Forward response headers
+      const contentType = response.headers.get("Content-Type") || (type === "audio" ? "audio/mp4" : "video/mp4");
+      const contentLength = response.headers.get("Content-Length");
+      const contentRange = response.headers.get("Content-Range");
+      const acceptRanges = response.headers.get("Accept-Ranges");
+
+      const responseHeaders: Record<string, string> = {
+        "Content-Type": contentType,
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-cache",
+      };
+
+      if (contentLength) responseHeaders["Content-Length"] = contentLength;
+      if (contentRange) responseHeaders["Content-Range"] = contentRange;
+      if (acceptRanges) responseHeaders["Accept-Ranges"] = acceptRanges;
+
+      return new Response(response.body, {
+        status: response.status,
+        headers: responseHeaders,
+      });
+    } catch (error) {
+      console.error("Proxy stream error:", error);
+      return c.json({ error: "Failed to proxy stream" }, 500);
     }
   }
 );

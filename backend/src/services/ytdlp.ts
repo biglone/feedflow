@@ -64,7 +64,6 @@ export async function getVideoInfo(videoId: string): Promise<VideoInfo> {
     noCheckCertificates: true,
     noWarnings: true,
     preferFreeFormats: true,
-    cookiesFromBrowser: "chrome",
   })) as any;
 
   const formats: StreamFormat[] = (info.formats || []).map((f: any) => ({
@@ -109,7 +108,6 @@ export async function getStreamUrls(videoId: string): Promise<StreamUrls> {
     noCheckCertificates: true,
     noWarnings: true,
     preferFreeFormats: true,
-    cookiesFromBrowser: "chrome",
   })) as any;
 
   const formats = info.formats || [];
