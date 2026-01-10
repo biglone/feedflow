@@ -47,7 +47,9 @@ echo "[deploy] update: $LOCAL -> $REMOTE"
 systemctl --user stop "$BACKEND_SERVICE" || true
 
 git -C "$REPO_DIR" reset --hard "origin/$BRANCH"
-git -C "$REPO_DIR" clean -fd
+git -C "$REPO_DIR" clean -fd \
+  -e "$BACKEND_DIR/.env" \
+  -e "$BACKEND_DIR/.env.*"
 
 if [[ "$NEEDS_NPM_CI" == "1" ]]; then
   echo "[deploy] npm ci (backend deps changed)"
@@ -57,4 +59,3 @@ fi
 systemctl --user start "$BACKEND_SERVICE"
 
 echo "[deploy] done: $(date -Is)"
-
