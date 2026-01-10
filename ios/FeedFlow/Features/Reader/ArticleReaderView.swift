@@ -150,11 +150,23 @@ struct ArticleReaderView: View {
     }
 
     private var youtubeVideoId: String? {
-        guard let urlString = article.articleURL,
-              let url = URL(string: urlString) else {
-            return nil
+        if let urlString = article.articleURL,
+           let videoId = extractYouTubeVideoId(from: urlString) {
+            return videoId
         }
 
+        return extractYouTubeVideoId(from: article.guid)
+    }
+
+    private func extractYouTubeVideoId(from value: String) -> String? {
+        // YouTube RSS/Atom guid format: "yt:video:<VIDEO_ID>"
+        if value.contains("yt:video:") {
+            if let last = value.split(separator: ":").last, !last.isEmpty {
+                return String(last)
+            }
+        }
+
+        guard let url = URL(string: value) else { return nil }
         let host = url.host?.lowercased() ?? ""
 
         // Handle youtu.be short URLs
@@ -165,26 +177,30 @@ struct ArticleReaderView: View {
         // Handle youtube.com URLs
         if host.contains("youtube.com") {
             // Standard watch URL: youtube.com/watch?v=VIDEO_ID
-            if let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems {
-                if let videoId = queryItems.first(where: { $0.name == "v" })?.value {
-                    return videoId
-                }
+            if let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+               let videoId = queryItems.first(where: { $0.name == "v" })?.value {
+                return videoId
             }
 
             // Shorts URL: youtube.com/shorts/VIDEO_ID
-            if url.pathComponents.contains("shorts") {
-                if let index = url.pathComponents.firstIndex(of: "shorts"),
-                   index + 1 < url.pathComponents.count {
-                    return url.pathComponents[index + 1]
-                }
+            if url.pathComponents.contains("shorts"),
+               let index = url.pathComponents.firstIndex(of: "shorts"),
+               index + 1 < url.pathComponents.count {
+                return url.pathComponents[index + 1]
             }
 
             // Embed URL: youtube.com/embed/VIDEO_ID
-            if url.pathComponents.contains("embed") {
-                if let index = url.pathComponents.firstIndex(of: "embed"),
-                   index + 1 < url.pathComponents.count {
-                    return url.pathComponents[index + 1]
-                }
+            if url.pathComponents.contains("embed"),
+               let index = url.pathComponents.firstIndex(of: "embed"),
+               index + 1 < url.pathComponents.count {
+                return url.pathComponents[index + 1]
+            }
+
+            // Legacy URL: youtube.com/v/VIDEO_ID
+            if url.pathComponents.contains("v"),
+               let index = url.pathComponents.firstIndex(of: "v"),
+               index + 1 < url.pathComponents.count {
+                return url.pathComponents[index + 1]
             }
         }
 
