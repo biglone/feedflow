@@ -29,17 +29,23 @@ enum APIError: Error, LocalizedError {
 actor APIClient {
     static let shared = APIClient()
 
-    private let baseURL: String
     private var authToken: String?
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
-    private init() {
-        // 本地开发使用 Mac IP，生产环境改回 Vercel URL
+    // Debug builds can switch between remote and local API endpoints via the Settings toggle.
+    private var baseURL: String {
         #if DEBUG
-        self.baseURL = "http://172.16.1.16:3000/api"
-        #else
-        self.baseURL = "https://feedflow-api.vercel.app/api"
+        if UserDefaults.standard.bool(forKey: "useLocalAPI") {
+            return "http://172.16.1.16:3000/api"
+        }
+        #endif
+        return "https://feedflow-silk.vercel.app/api"
+    }
+
+    private init() {
+        #if DEBUG
+        UserDefaults.standard.register(defaults: ["useLocalAPI": false])
         #endif
         self.decoder = JSONDecoder()
         self.decoder.dateDecodingStrategy = .iso8601

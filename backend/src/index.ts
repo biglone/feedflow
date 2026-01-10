@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { serve } from "@hono/node-server";
@@ -28,9 +29,10 @@ app.get("/", (c) => {
   });
 });
 
-app.get("/health", (c) => {
-  return c.json({ status: "ok" });
-});
+const healthHandler = (c: Context) => c.json({ status: "ok" });
+
+app.get("/health", healthHandler);
+app.get("/api/health", healthHandler);
 
 app.route("/api/auth", authRouter);
 app.route("/api/feeds", feedsRouter);

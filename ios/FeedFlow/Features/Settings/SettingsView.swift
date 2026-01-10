@@ -9,6 +9,9 @@ struct SettingsView: View {
     @AppStorage("markAsReadOnScroll") private var markAsReadOnScroll: Bool = false
     @AppStorage("openLinksInApp") private var openLinksInApp: Bool = true
     @AppStorage("fontSize") private var fontSize: Double = 17
+    #if DEBUG
+    @AppStorage("useLocalAPI") private var useLocalAPI: Bool = false
+    #endif
 
     @State private var showingAccountSheet = false
     @State private var showingExportSheet = false
@@ -171,6 +174,16 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                #if DEBUG
+                // Developer Section for switching API endpoints
+                Section("Developer") {
+                    Toggle("Use Local API Server", isOn: $useLocalAPI)
+                    Text("Connect to http://172.16.1.16:3000/api instead of the deployed backend.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                #endif
             }
             .navigationTitle("Settings")
             .sheet(isPresented: $showingAccountSheet) {
