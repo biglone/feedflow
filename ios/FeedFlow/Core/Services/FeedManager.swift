@@ -226,6 +226,92 @@ class FeedManager: ObservableObject {
         }
     }
 
+    // MARK: - YouTube Backfill (Local)
+
+    func loadMoreYouTubeVideos(for feed: Feed, pageSize: Int = 50) async throws -> Int {
+        guard let channelId = extractYouTubeChannelId(from: feed.feedURL) else { return 0 }
+
+        let reachedEndKey = "youtubeVideosReachedEnd.\(channelId)"
+        if UserDefaults.standard.bool(forKey: reachedEndKey) {
+            return 0
+        }
+
+        let pageTokenKey = "youtubeVideosNextPageToken.\(channelId)"
+        let pageToken = UserDefaults.standard.string(forKey: pageTokenKey)
+
+        let page = try await apiClient.getYouTubeChannelVideosPage(
+            channelId: channelId,
+            limit: pageSize,
+            pageToken: pageToken
+        )
+
+        if let nextPageToken = page.nextPageToken, !nextPageToken.isEmpty {
+            UserDefaults.standard.set(nextPageToken, forKey: pageTokenKey)
+            UserDefaults.standard.set(false, forKey: reachedEndKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: pageTokenKey)
+            UserDefaults.standard.set(true, forKey: reachedEndKey)
+        }
+
+        var existingGUIDs = Set(feed.articles.map { $0.guid })
+        var insertedCount = 0
+
+        for video in page.videos {
+            let guid = "yt:video:\(video.id)"
+            if existingGUIDs.contains(guid) {
+                continue
+            }
+            existingGUIDs.insert(guid)
+
+            let publishedAt = parseYouTubeDate(video.publishedAt)
+            let articleURL = "https://www.youtube.com/watch?v=\(video.id)"
+
+            let article = Article(
+                guid: guid,
+                title: video.title,
+                content: nil,
+                summary: video.description.isEmpty ? nil : video.description,
+                articleURL: articleURL,
+                author: video.channelTitle,
+                imageURL: video.thumbnailUrl.isEmpty ? nil : video.thumbnailUrl,
+                publishedAt: publishedAt
+            )
+            article.isRead = true
+            article.feed = feed
+            modelContext.insert(article)
+            insertedCount += 1
+        }
+
+        if insertedCount > 0 {
+            try modelContext.save()
+        }
+
+        return insertedCount
+    }
+
+    private func extractYouTubeChannelId(from feedUrl: String) -> String? {
+        guard let url = URL(string: feedUrl) else { return nil }
+        guard (url.host ?? "").contains("youtube.com") else { return nil }
+        guard url.path.contains("/feeds/videos.xml") else { return nil }
+
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        return components?.queryItems?.first(where: { $0.name == "channel_id" })?.value
+    }
+
+    private func parseYouTubeDate(_ value: String) -> Date? {
+        guard !value.isEmpty else { return nil }
+
+        let withFractional = ISO8601DateFormatter()
+        withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = withFractional.date(from: value) {
+            return date
+        }
+
+        let withoutFractional = ISO8601DateFormatter()
+        withoutFractional.formatOptions = [.withInternetDateTime]
+        return withoutFractional.date(from: value)
+    }
+
     func markAsRead(_ article: Article) {
         if !article.isRead {
             article.isRead = true
