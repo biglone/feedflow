@@ -190,6 +190,12 @@ struct VideoPlayerView: View {
                 throw NSError(domain: "VideoPlayer", code: -1, userInfo: [NSLocalizedDescriptionKey: "No playable stream found"])
             }
 
+            #if DEBUG
+            if UserDefaults.standard.bool(forKey: "enableNetworkDebugLogs") {
+                AppLog.player.info("YouTube playback URL videoId=\(videoId, privacy: .public) url=\(urlString, privacy: .public)")
+            }
+            #endif
+
             let info = NowPlayingInfo(
                 title: title,
                 artist: channelTitle,
