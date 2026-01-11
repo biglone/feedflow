@@ -9,6 +9,7 @@ final class Feed {
     var siteURL: String?
     var iconURL: String?
     var feedDescription: String?
+    var kind: String?
     var lastUpdated: Date?
     var unreadCount: Int
 
@@ -24,7 +25,8 @@ final class Feed {
         feedURL: String,
         siteURL: String? = nil,
         iconURL: String? = nil,
-        feedDescription: String? = nil
+        feedDescription: String? = nil,
+        kind: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -32,7 +34,17 @@ final class Feed {
         self.siteURL = siteURL
         self.iconURL = iconURL
         self.feedDescription = feedDescription
+        self.kind = kind
         self.lastUpdated = nil
         self.unreadCount = 0
+    }
+}
+
+extension Feed {
+    var resolvedKind: FeedKind {
+        if let kind, let stored = FeedKind(rawValue: kind) {
+            return stored
+        }
+        return FeedKind.infer(from: feedURL)
     }
 }

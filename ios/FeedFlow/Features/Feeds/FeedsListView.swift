@@ -10,6 +10,14 @@ struct FeedsListView: View {
     @State private var showingRecommendedFeeds = false
     @AppStorage("didShowRecommendedFeeds") private var didShowRecommendedFeeds = false
 
+    private var feedsByKind: [FeedKind: [Feed]] {
+        Dictionary(grouping: feeds, by: \.resolvedKind)
+    }
+
+    private var kindSections: [FeedKind] {
+        FeedKind.displayOrder.filter { !(feedsByKind[$0] ?? []).isEmpty }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -24,14 +32,23 @@ struct FeedsListView: View {
                         didShowRecommendedFeeds = true
                     }
                 } else {
-                    ForEach(feeds) { feed in
-                        NavigationLink {
-                            ArticlesListView(feed: feed)
-                        } label: {
-                            FeedRowView(feed: feed)
+                    ForEach(kindSections, id: \.self) { kind in
+                        let sectionFeeds = feedsByKind[kind] ?? []
+                        Section {
+                            ForEach(sectionFeeds) { feed in
+                                NavigationLink {
+                                    ArticlesListView(feed: feed)
+                                } label: {
+                                    FeedRowView(feed: feed)
+                                }
+                            }
+                            .onDelete { offsets in
+                                deleteFeeds(sectionFeeds, at: offsets)
+                            }
+                        } header: {
+                            Label(kind.displayName, systemImage: kind.systemImageName)
                         }
                     }
-                    .onDelete(perform: deleteFeeds)
                 }
             }
             .transaction { $0.animation = nil }
@@ -95,7 +112,7 @@ struct FeedsListView: View {
         }
     }
 
-    private func deleteFeeds(at offsets: IndexSet) {
+    private func deleteFeeds(_ feeds: [Feed], at offsets: IndexSet) {
         for index in offsets {
             modelContext.delete(feeds[index])
         }
@@ -113,7 +130,7 @@ struct FeedRowView: View {
                     .resizable()
                     .scaledToFit()
             } placeholder: {
-                Image(systemName: "newspaper")
+                Image(systemName: feed.resolvedKind.systemImageName)
                     .foregroundStyle(.secondary)
             }
             .frame(width: 32, height: 32)
@@ -133,6 +150,16 @@ struct FeedRowView: View {
             }
 
             Spacer()
+
+            if feed.resolvedKind != .rss {
+                Text(feed.resolvedKind.displayName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.gray.opacity(0.12))
+                    .clipShape(Capsule())
+            }
 
             if feed.unreadCount > 0 {
                 Text("\(feed.unreadCount)")
@@ -492,8 +519,12 @@ struct RecommendedFeedsView: View {
         defer { addingId = nil }
 
         do {
+            let kindHint: FeedKind? = switch item.kind {
+            case .rss: .rss
+            case .podcast: .podcast
+            }
             let feedManager = FeedManager(modelContext: modelContext)
-            _ = try await feedManager.addFeed(url: item.url)
+            _ = try await feedManager.addFeed(url: item.url, kindHint: kindHint)
         } catch {
             self.error = error
             self.showingError = true

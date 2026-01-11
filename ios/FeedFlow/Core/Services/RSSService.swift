@@ -27,6 +27,7 @@ struct ParsedFeed {
     let description: String?
     let siteURL: String?
     let iconURL: String?
+    let kind: FeedKind
     let articles: [ParsedArticle]
 }
 
@@ -78,9 +79,17 @@ actor RSSService {
     }
 
     private func parseRSSFeed(_ feed: RSSFeed, feedURL: String) -> ParsedFeed {
+        let isYouTube = FeedKind.isYouTubeFeedURL(feedURL)
+        var containsAudioEnclosure = false
+
         let articles = feed.items?.compactMap { item -> ParsedArticle? in
             let guid = item.guid?.value ?? item.link ?? UUID().uuidString
             let title = item.title ?? "Untitled"
+
+            let enclosureURL = item.enclosure?.attributes?.url
+            if FeedKind.isAudioEnclosureURL(enclosureURL) {
+                containsAudioEnclosure = true
+            }
 
             return ParsedArticle(
                 guid: guid,
@@ -89,7 +98,8 @@ actor RSSService {
                 summary: item.description,
                 url: item.link,
                 author: item.author ?? item.dublinCore?.dcCreator,
-                imageURL: item.enclosure?.attributes?.url ?? item.media?.mediaThumbnails?.first?.attributes?.url,
+                imageURL: item.media?.mediaThumbnails?.first?.attributes?.url
+                    ?? (FeedKind.isImageURL(enclosureURL) ? enclosureURL : nil),
                 publishedAt: item.pubDate
             )
         } ?? []
@@ -99,6 +109,7 @@ actor RSSService {
             description: feed.description,
             siteURL: feed.link,
             iconURL: feed.image?.url,
+            kind: isYouTube ? .youtube : (containsAudioEnclosure ? .podcast : .rss),
             articles: articles
         )
     }
@@ -125,6 +136,7 @@ actor RSSService {
             description: feed.subtitle?.value,
             siteURL: feed.links?.first?.attributes?.href,
             iconURL: feed.icon ?? feed.logo,
+            kind: FeedKind.infer(from: feedURL),
             articles: articles
         )
     }
@@ -151,6 +163,7 @@ actor RSSService {
             description: feed.description,
             siteURL: feed.homePageURL,
             iconURL: feed.icon ?? feed.favicon,
+            kind: FeedKind.infer(from: feedURL),
             articles: articles
         )
     }

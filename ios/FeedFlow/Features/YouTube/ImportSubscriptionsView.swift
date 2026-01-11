@@ -213,7 +213,8 @@ struct ImportSubscriptionsView: View {
                 title: subscription.title,
                 feedURL: subscription.rssUrl,
                 iconURL: subscription.thumbnailUrl,
-                feedDescription: subscription.description
+                feedDescription: subscription.description,
+                kind: FeedKind.youtube.rawValue
             )
 
             modelContext.insert(feed)

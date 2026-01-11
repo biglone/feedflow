@@ -176,7 +176,7 @@ struct YouTubeSearchView: View {
 
             // Add the feed using FeedManager
             let feedManager = FeedManager(modelContext: modelContext)
-            _ = try await feedManager.addFeed(url: rssUrl)
+            _ = try await feedManager.addFeed(url: rssUrl, kindHint: .youtube)
 
             // Dismiss the view on success
             dismiss()

@@ -51,7 +51,8 @@ class FeedManager: ObservableObject {
                         feedURL: cloudFeed.feedUrl,
                         siteURL: cloudFeed.siteUrl,
                         iconURL: cloudFeed.iconUrl,
-                        feedDescription: cloudFeed.description
+                        feedDescription: cloudFeed.description,
+                        kind: FeedKind.infer(from: cloudFeed.feedUrl).rawValue
                     )
                     modelContext.insert(feed)
 
@@ -76,6 +77,13 @@ class FeedManager: ObservableObject {
 
                     feed.unreadCount = cloudArticles.filter { !$0.isRead }.count
                     feed.lastUpdated = cloudFeed.lastFetchedAt
+
+                    if feed.kind == FeedKind.rss.rawValue {
+                        let hasAudioEnclosure = cloudArticles.contains { FeedKind.isAudioEnclosureURL($0.imageUrl) }
+                        if hasAudioEnclosure {
+                            feed.kind = FeedKind.podcast.rawValue
+                        }
+                    }
                 }
             }
 
@@ -86,7 +94,7 @@ class FeedManager: ObservableObject {
         }
     }
 
-    func addFeed(url: String) async throws -> Feed {
+    func addFeed(url: String, kindHint: FeedKind? = nil) async throws -> Feed {
         let feedURL: String
         if url.hasPrefix("http://") || url.hasPrefix("https://") {
             feedURL = url
@@ -98,12 +106,14 @@ class FeedManager: ObservableObject {
         if syncMode == .cloud {
             let cloudFeed = try await apiClient.addFeed(url: feedURL)
 
+            let inferredKind = kindHint ?? FeedKind.infer(from: cloudFeed.feedUrl)
             let feed = Feed(
                 title: cloudFeed.title,
                 feedURL: cloudFeed.feedUrl,
                 siteURL: cloudFeed.siteUrl,
                 iconURL: cloudFeed.iconUrl,
-                feedDescription: cloudFeed.description
+                feedDescription: cloudFeed.description,
+                kind: inferredKind.rawValue
             )
 
             modelContext.insert(feed)
@@ -128,6 +138,13 @@ class FeedManager: ObservableObject {
             feed.unreadCount = cloudArticles.count
             feed.lastUpdated = Date()
 
+            if inferredKind == .rss {
+                let hasAudioEnclosure = cloudArticles.contains { FeedKind.isAudioEnclosureURL($0.imageUrl) }
+                if hasAudioEnclosure {
+                    feed.kind = FeedKind.podcast.rawValue
+                }
+            }
+
             try modelContext.save()
             return feed
         }
@@ -142,12 +159,14 @@ class FeedManager: ObservableObject {
 
         let parsedFeed = try await rssService.fetchFeed(from: finalURL)
 
+        let inferredKind = kindHint ?? parsedFeed.kind
         let feed = Feed(
             title: parsedFeed.title,
             feedURL: finalURL,
             siteURL: parsedFeed.siteURL,
             iconURL: parsedFeed.iconURL,
-            feedDescription: parsedFeed.description
+            feedDescription: parsedFeed.description,
+            kind: inferredKind.rawValue
         )
 
         modelContext.insert(feed)
@@ -182,6 +201,10 @@ class FeedManager: ObservableObject {
 
     func refreshFeed(_ feed: Feed) async throws {
         let parsedFeed = try await rssService.fetchFeed(from: feed.feedURL)
+
+        if feed.kind == nil, parsedFeed.kind == .podcast {
+            feed.kind = parsedFeed.kind.rawValue
+        }
 
         let existingGUIDs = Set(feed.articles.map { $0.guid })
 
