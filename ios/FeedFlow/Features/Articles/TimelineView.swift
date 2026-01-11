@@ -6,6 +6,7 @@ struct TimelineView: View {
     @Query private var allArticles: [Article]
 
     @State private var filter: ArticleFilter = .all
+    @State private var typeFilter: FeedTypeFilter = .all
     @State private var isRefreshing = false
 
     enum ArticleFilter: String, CaseIterable {
@@ -16,6 +17,31 @@ struct TimelineView: View {
             switch self {
             case .all: return "newspaper"
             case .unread: return "circle"
+            }
+        }
+    }
+
+    enum FeedTypeFilter: String, CaseIterable {
+        case all = "All Types"
+        case youtube = "YouTube"
+        case rss = "RSS"
+        case podcast = "Podcast"
+
+        var icon: String {
+            switch self {
+            case .all: "line.3.horizontal.decrease.circle"
+            case .youtube: FeedKind.youtube.systemImageName
+            case .rss: FeedKind.rss.systemImageName
+            case .podcast: FeedKind.podcast.systemImageName
+            }
+        }
+
+        var kind: FeedKind? {
+            switch self {
+            case .all: nil
+            case .youtube: .youtube
+            case .rss: .rss
+            case .podcast: .podcast
             }
         }
     }
@@ -33,11 +59,17 @@ struct TimelineView: View {
             return $0.id.uuidString > $1.id.uuidString
         }
 
-        switch filter {
-        case .all:
-            return sorted
-        case .unread:
-            return sorted.filter { !$0.isRead }
+        let readFiltered: [Article] = switch filter {
+        case .all: sorted
+        case .unread: sorted.filter { !$0.isRead }
+        }
+
+        guard let kind = typeFilter.kind else {
+            return readFiltered
+        }
+
+        return readFiltered.filter { article in
+            article.feed?.resolvedKind == kind
         }
     }
 
@@ -91,6 +123,13 @@ struct TimelineView: View {
                             ForEach(ArticleFilter.allCases, id: \.self) { filter in
                                 Label(filter.rawValue, systemImage: filter.icon)
                                     .tag(filter)
+                            }
+                        }
+
+                        Picker("Type", selection: $typeFilter) {
+                            ForEach(FeedTypeFilter.allCases, id: \.self) { type in
+                                Label(type.rawValue, systemImage: type.icon)
+                                    .tag(type)
                             }
                         }
                     } label: {
