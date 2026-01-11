@@ -7,6 +7,25 @@ BACKEND_DIR="${FEEDFLOW_BACKEND_DIR:-backend}"
 BACKEND_SERVICE="${FEEDFLOW_BACKEND_SERVICE:-feedflow-backend.service}"
 LOCK_FILE="${FEEDFLOW_DEPLOY_LOCK:-$HOME/.cache/feedflow/deploy.lock}"
 
+BACKEND_WAS_ACTIVE=0
+if systemctl --user is-active --quiet "$BACKEND_SERVICE"; then
+  BACKEND_WAS_ACTIVE=1
+fi
+
+restore_backend_on_error() {
+  local exit_code="$?"
+
+  if [[ "$exit_code" -ne 0 && "$BACKEND_WAS_ACTIVE" -eq 1 ]]; then
+    if ! systemctl --user is-active --quiet "$BACKEND_SERVICE"; then
+      echo "[deploy] failed (code=$exit_code); starting $BACKEND_SERVICE to restore availability"
+      systemctl --user start "$BACKEND_SERVICE" || true
+    fi
+  fi
+
+  return "$exit_code"
+}
+trap restore_backend_on_error EXIT
+
 DEV_REPO_DIR_DEFAULT="$HOME/workspace/feedflow"
 if [[ "$REPO_DIR" == "$DEV_REPO_DIR_DEFAULT" && "${FEEDFLOW_DEPLOY_ALLOW_DEV_DIR:-0}" != "1" ]]; then
   echo "[deploy] refusing: REPO_DIR points to dev dir ($DEV_REPO_DIR_DEFAULT)"
@@ -75,22 +94,27 @@ fi
 
 echo "[deploy] update: $LOCAL -> $REMOTE"
 
-systemctl --user stop "$BACKEND_SERVICE" || true
-
 git -C "$REPO_DIR" reset --hard "origin/$BRANCH"
 git -C "$REPO_DIR" clean -fd \
   -e "$BACKEND_DIR/.env" \
   -e "$BACKEND_DIR/.env.*" \
   -e "$BACKEND_DIR/node_modules"
 
-if [[ "$NEEDS_NPM_CI" == "1" ]] || [[ ! -d "$REPO_DIR/$BACKEND_DIR/node_modules" ]]; then
-  echo "[deploy] npm ci (backend deps changed)"
-  (cd "$REPO_DIR/$BACKEND_DIR" && npm ci --no-fund --no-audit)
+BACKEND_NODE_MODULES_DIR="$REPO_DIR/$BACKEND_DIR/node_modules"
+BACKEND_TSC_BIN="$BACKEND_NODE_MODULES_DIR/.bin/tsc"
+if [[ ! -x "$BACKEND_TSC_BIN" ]]; then
+  NEEDS_NPM_CI=1
+fi
+
+if [[ "$NEEDS_NPM_CI" == "1" ]] || [[ ! -d "$BACKEND_NODE_MODULES_DIR" ]]; then
+  echo "[deploy] npm ci (including dev deps for build)"
+  systemctl --user stop "$BACKEND_SERVICE" || true
+  (cd "$REPO_DIR/$BACKEND_DIR" && NPM_CONFIG_PRODUCTION=false npm ci --include=dev --no-fund --no-audit)
 fi
 
 echo "[deploy] npm run build (backend)"
-(cd "$REPO_DIR/$BACKEND_DIR" && npm run build)
+(cd "$REPO_DIR/$BACKEND_DIR" && NPM_CONFIG_PRODUCTION=false npm run build)
 
-systemctl --user start "$BACKEND_SERVICE"
+systemctl --user restart "$BACKEND_SERVICE"
 
 echo "[deploy] done: $(date -Is)"
