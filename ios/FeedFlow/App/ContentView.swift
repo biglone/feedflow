@@ -9,14 +9,8 @@ struct ContentView: View {
     @State private var showingAddFeed = false
     @State private var selectedTab: Tab = .timeline
     @State private var showingFullPlayer = false
-    @StateObject private var feedManager: FeedManager
+    @State private var isSyncing = false
     @StateObject private var playerManager = PlayerManager.shared
-
-    init() {
-        _feedManager = StateObject(wrappedValue: FeedManager(
-            modelContext: ModelContext(try! ModelContainer(for: Feed.self, Article.self, Folder.self))
-        ))
-    }
 
     enum Tab {
         case timeline
@@ -54,12 +48,12 @@ struct ContentView: View {
         .onChange(of: authManager.isLoggedIn) { _, isLoggedIn in
             if isLoggedIn {
                 Task {
-                    await feedManager.syncWithCloud()
+                    await syncWithCloud()
                 }
             }
         }
         .overlay(alignment: .top) {
-            if feedManager.isSyncing {
+            if isSyncing {
                 SyncIndicatorView()
             }
         }
@@ -86,6 +80,16 @@ struct ContentView: View {
                 )
             }
         }
+    }
+
+    @MainActor
+    private func syncWithCloud() async {
+        guard !isSyncing else { return }
+        isSyncing = true
+        defer { isSyncing = false }
+
+        let feedManager = FeedManager(modelContext: modelContext)
+        await feedManager.syncWithCloud()
     }
 }
 

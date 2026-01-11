@@ -4,7 +4,8 @@ import SwiftData
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var authManager = AuthManager.shared
-    @StateObject private var feedManager: FeedManager
+    @State private var isSyncing = false
+    @State private var lastSyncTime: Date?
     @AppStorage("refreshInterval") private var refreshInterval: Int = 30
     @AppStorage("markAsReadOnScroll") private var markAsReadOnScroll: Bool = false
     @AppStorage("openLinksInApp") private var openLinksInApp: Bool = true
@@ -20,12 +21,6 @@ struct SettingsView: View {
     @State private var showingImportSheet = false
     @State private var showingClearDataAlert = false
     @State private var showingLogoutAlert = false
-
-    init() {
-        _feedManager = StateObject(wrappedValue: FeedManager(
-            modelContext: ModelContext(try! ModelContainer(for: Feed.self, Article.self, Folder.self))
-        ))
-    }
 
     var body: some View {
         NavigationStack {
@@ -78,20 +73,20 @@ struct SettingsView: View {
                     Section("Sync") {
                         Button {
                             Task {
-                                await feedManager.syncWithCloud()
+                                await syncWithCloud()
                             }
                         } label: {
                             HStack {
                                 Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
                                 Spacer()
-                                if feedManager.isSyncing {
+                                if isSyncing {
                                     ProgressView()
                                 }
                             }
                         }
-                        .disabled(feedManager.isSyncing)
+                        .disabled(isSyncing)
 
-                        if let lastSync = feedManager.lastSyncTime {
+                        if let lastSync = lastSyncTime {
                             HStack {
                                 Text("Last Synced")
                                 Spacer()
@@ -218,11 +213,23 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {}
                 Button("Sign Out", role: .destructive) {
                     authManager.logout()
+                    lastSyncTime = nil
                 }
             } message: {
                 Text("Are you sure you want to sign out?")
             }
         }
+    }
+
+    @MainActor
+    private func syncWithCloud() async {
+        guard !isSyncing else { return }
+        isSyncing = true
+        defer { isSyncing = false }
+
+        let feedManager = FeedManager(modelContext: modelContext)
+        await feedManager.syncWithCloud()
+        lastSyncTime = feedManager.lastSyncTime
     }
 
     private func clearAllData() {

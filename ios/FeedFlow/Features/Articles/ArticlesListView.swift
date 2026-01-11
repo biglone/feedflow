@@ -196,15 +196,71 @@ struct ArticleRowView: View {
 
 extension String {
     func strippingHTML() -> String {
-        guard let data = self.data(using: .utf8) else { return self }
-        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
-            .documentType: NSAttributedString.DocumentType.html,
-            .characterEncoding: String.Encoding.utf8.rawValue
-        ]
-        guard let attributedString = try? NSAttributedString(data: data, options: options, documentAttributes: nil) else {
-            return self.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        if self.isEmpty { return self }
+
+        var text = self
+
+        if text.contains("<") {
+            text = text.replacingOccurrences(
+                of: "<\\s*br\\s*/?\\s*>",
+                with: "\n",
+                options: [.regularExpression, .caseInsensitive]
+            )
+            text = text.replacingOccurrences(
+                of: "<\\s*/\\s*p\\s*>",
+                with: "\n",
+                options: [.regularExpression, .caseInsensitive]
+            )
+            text = text.replacingOccurrences(
+                of: "<(script|style)[^>]*>[\\s\\S]*?<\\s*/\\s*\\1\\s*>",
+                with: "",
+                options: [.regularExpression, .caseInsensitive]
+            )
+            text = text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
         }
-        return attributedString.string
+
+        text = text.decodingHTMLEntities()
+
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func decodingHTMLEntities() -> String {
+        var text = self
+        let named: [String: String] = [
+            "&nbsp;": " ",
+            "&amp;": "&",
+            "&lt;": "<",
+            "&gt;": ">",
+            "&quot;": "\"",
+            "&#39;": "'",
+        ]
+        for (k, v) in named {
+            text = text.replacingOccurrences(of: k, with: v)
+        }
+
+        let patterns = [
+            ("&#x([0-9A-Fa-f]+);", 16),
+            ("&#([0-9]+);", 10),
+        ]
+
+        for (pattern, radix) in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+            let matches = regex.matches(in: text, range: NSRange(text.startIndex..<text.endIndex, in: text))
+            guard !matches.isEmpty else { continue }
+
+            var result = text
+            for match in matches.reversed() {
+                guard match.numberOfRanges == 2 else { continue }
+                guard let range = Range(match.range(at: 1), in: result) else { continue }
+                let raw = String(result[range])
+                guard let codePoint = Int(raw, radix: radix), let scalar = UnicodeScalar(codePoint) else { continue }
+                guard let replaceRange = Range(match.range(at: 0), in: result) else { continue }
+                result.replaceSubrange(replaceRange, with: String(scalar))
+            }
+            text = result
+        }
+
+        return text
     }
 }
 

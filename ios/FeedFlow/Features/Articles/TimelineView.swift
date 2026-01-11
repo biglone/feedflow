@@ -3,7 +3,7 @@ import SwiftData
 
 struct TimelineView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Article.publishedAt, order: .reverse) private var allArticles: [Article]
+    @Query private var allArticles: [Article]
 
     @State private var filter: ArticleFilter = .all
     @State private var isRefreshing = false
@@ -21,11 +21,23 @@ struct TimelineView: View {
     }
 
     var filteredArticles: [Article] {
+        let sorted = allArticles.sorted {
+            let lhsDate = $0.publishedAt ?? Date.distantPast
+            let rhsDate = $1.publishedAt ?? Date.distantPast
+            if lhsDate != rhsDate {
+                return lhsDate > rhsDate
+            }
+            if $0.guid != $1.guid {
+                return $0.guid > $1.guid
+            }
+            return $0.id.uuidString > $1.id.uuidString
+        }
+
         switch filter {
         case .all:
-            return allArticles
+            return sorted
         case .unread:
-            return allArticles.filter { !$0.isRead }
+            return sorted.filter { !$0.isRead }
         }
     }
 
