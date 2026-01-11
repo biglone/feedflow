@@ -98,6 +98,9 @@ struct VideoPlayerView: View {
                             isPlaying: playerManager.isPlaying,
                             currentTime: playerManager.currentTime,
                             duration: playerManager.duration,
+                            seekableStartTime: playerManager.seekableStartTime,
+                            seekableEndTime: playerManager.seekableEndTime,
+                            isSeekable: playerManager.isSeekable,
                             playbackMode: playerManager.playbackMode,
                             onPlayPause: { playerManager.togglePlayPause() },
                             onSeek: { playerManager.seek(to: $0) },
@@ -276,6 +279,9 @@ struct PlayerControlsOverlay: View {
     let isPlaying: Bool
     let currentTime: TimeInterval
     let duration: TimeInterval
+    let seekableStartTime: TimeInterval
+    let seekableEndTime: TimeInterval
+    let isSeekable: Bool
     let playbackMode: PlaybackMode
     let onPlayPause: () -> Void
     let onSeek: (TimeInterval) -> Void
@@ -284,7 +290,17 @@ struct PlayerControlsOverlay: View {
     let onModeToggle: () -> Void
     let onDismiss: () -> Void
 
+    @State private var isScrubbing = false
+    @State private var scrubValue: TimeInterval = 0
+
     var body: some View {
+        let effectiveSeekStart = seekableStartTime
+        let effectiveSeekEnd = seekableEndTime > seekableStartTime
+            ? seekableEndTime
+            : (seekableStartTime + max(duration, 1))
+        let seekWindowDuration = max(effectiveSeekEnd - effectiveSeekStart, 1)
+        let displayedCurrentTime = max(0, min(currentTime - effectiveSeekStart, seekWindowDuration))
+
         ZStack {
             // Gradient background
             LinearGradient(
@@ -365,19 +381,28 @@ struct PlayerControlsOverlay: View {
                 VStack(spacing: 8) {
                     Slider(
                         value: Binding(
-                            get: { currentTime },
-                            set: { onSeek($0) }
+                            get: { isScrubbing ? scrubValue : displayedCurrentTime },
+                            set: { scrubValue = $0 }
                         ),
-                        in: 0...max(duration, 1)
+                        in: 0...seekWindowDuration
+                    ) { editing in
+                        isScrubbing = editing
+                        if editing {
+                            scrubValue = displayedCurrentTime
+                        } else {
+                            onSeek(effectiveSeekStart + scrubValue)
+                        }
+                    }
                     )
                     .tint(.white)
+                    .disabled(!isSeekable)
 
                     HStack {
-                        Text(formatTime(currentTime))
+                        Text(formatTime(isScrubbing ? scrubValue : displayedCurrentTime))
                             .font(.caption)
                             .foregroundStyle(.gray)
                         Spacer()
-                        Text(formatTime(duration))
+                        Text(formatTime(seekWindowDuration))
                             .font(.caption)
                             .foregroundStyle(.gray)
                     }

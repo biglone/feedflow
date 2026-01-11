@@ -21,6 +21,9 @@ class PlayerManager: ObservableObject {
     @Published private(set) var isPlaying: Bool = false
     @Published private(set) var currentTime: TimeInterval = 0
     @Published private(set) var duration: TimeInterval = 0
+    @Published private(set) var seekableStartTime: TimeInterval = 0
+    @Published private(set) var seekableEndTime: TimeInterval = 0
+    @Published private(set) var isSeekable: Bool = false
     @Published private(set) var isLoading: Bool = false
     @Published private(set) var error: Error?
 
@@ -149,6 +152,11 @@ class PlayerManager: ObservableObject {
         error = nil
         currentVideoId = videoId
         nowPlayingInfo = info
+        currentTime = 0
+        duration = info.duration
+        seekableStartTime = 0
+        seekableEndTime = info.duration
+        isSeekable = info.duration > 0
 
         // Stop any existing playback but don't clear currentVideoId yet
         player?.pause()
@@ -171,7 +179,7 @@ class PlayerManager: ObservableObject {
                 switch item.status {
                 case .readyToPlay:
                     self?.isLoading = false
-                    self?.duration = item.duration.seconds.isNaN ? 0 : item.duration.seconds
+                    self?.updateDurationAndSeekableRangeIfNeeded(from: item)
                     if let progress = savedProgress, progress > 0 {
                         self?.seekAndPlay(to: progress)
                     } else {
@@ -194,6 +202,9 @@ class PlayerManager: ObservableObject {
         ) { [weak self] time in
             Task { @MainActor in
                 self?.currentTime = time.seconds
+                if let item = self?.player?.currentItem {
+                    self?.updateDurationAndSeekableRangeIfNeeded(from: item)
+                }
                 self?.updateNowPlayingProgress()
                 // Save progress every 5 seconds
                 if Int(time.seconds) % 5 == 0 {
@@ -225,10 +236,11 @@ class PlayerManager: ObservableObject {
 
     func seekAndPlay(to time: TimeInterval) {
         guard let player = player else { return }
+        guard let clamped = clampTimeToSeekableRange(time) else { return }
         activateAudioSession()
         isPlaying = false
         player.seek(
-            to: CMTime(seconds: time, preferredTimescale: 600),
+            to: CMTime(seconds: clamped, preferredTimescale: 600),
             toleranceBefore: CMTime(value: 1, timescale: 600),
             toleranceAfter: CMTime(value: 1, timescale: 600)
         ) { [weak self] _ in
@@ -236,7 +248,7 @@ class PlayerManager: ObservableObject {
                 guard let self else { return }
                 self.player?.play()
                 self.isPlaying = true
-                self.currentTime = time
+                self.currentTime = clamped
                 self.updateNowPlayingInfo()
             }
         }
@@ -271,6 +283,9 @@ class PlayerManager: ObservableObject {
         isPlaying = false
         currentTime = 0
         duration = 0
+        seekableStartTime = 0
+        seekableEndTime = 0
+        isSeekable = false
         currentVideoId = nil
         nowPlayingInfo = nil
 
@@ -279,20 +294,20 @@ class PlayerManager: ObservableObject {
     }
 
     func seek(to time: TimeInterval) {
-        let cmTime = CMTime(seconds: time, preferredTimescale: 600)
-        player?.seek(to: cmTime, toleranceBefore: .zero, toleranceAfter: .zero)
-        currentTime = time
+        guard let player else { return }
+        guard let clamped = clampTimeToSeekableRange(time) else { return }
+        let cmTime = CMTime(seconds: clamped, preferredTimescale: 600)
+        player.seek(to: cmTime, toleranceBefore: .zero, toleranceAfter: .zero)
+        currentTime = clamped
         updateNowPlayingProgress()
     }
 
     func skipForward(seconds: TimeInterval) {
-        let newTime = min(currentTime + seconds, duration)
-        seek(to: newTime)
+        seek(to: currentTime + seconds)
     }
 
     func skipBackward(seconds: TimeInterval) {
-        let newTime = max(currentTime - seconds, 0)
-        seek(to: newTime)
+        seek(to: currentTime - seconds)
     }
 
     // MARK: - Now Playing Info
@@ -300,9 +315,10 @@ class PlayerManager: ObservableObject {
     private func updateNowPlayingInfo() {
         guard let info = nowPlayingInfo else { return }
 
+        let effectiveDuration = duration > 0 ? duration : info.duration
         var nowPlayingDict: [String: Any] = [
             MPMediaItemPropertyTitle: info.title,
-            MPMediaItemPropertyPlaybackDuration: duration,
+            MPMediaItemPropertyPlaybackDuration: effectiveDuration,
             MPNowPlayingInfoPropertyElapsedPlaybackTime: currentTime,
             MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0,
         ]
@@ -364,5 +380,62 @@ class PlayerManager: ObservableObject {
     func clearProgress(for videoId: String) {
         playbackProgress.removeValue(forKey: videoId)
         UserDefaults.standard.set(playbackProgress, forKey: progressKey)
+    }
+
+    // MARK: - Seekable Range
+
+    private func updateDurationAndSeekableRangeIfNeeded(from item: AVPlayerItem) {
+        let itemDurationSeconds = item.duration.seconds
+        let hasFiniteItemDuration =
+            itemDurationSeconds.isFinite && !itemDurationSeconds.isNaN && itemDurationSeconds > 0
+        if hasFiniteItemDuration {
+            duration = itemDurationSeconds
+        }
+
+        let ranges = item.seekableTimeRanges.map(\.timeRangeValue)
+        if ranges.isEmpty {
+            seekableStartTime = 0
+            seekableEndTime = duration
+            isSeekable = duration > 0
+            return
+        }
+
+        var start = Double.greatestFiniteMagnitude
+        var end = 0.0
+        for range in ranges {
+            let rangeStart = range.start.seconds
+            let rangeEnd = range.start.seconds + range.duration.seconds
+            if rangeStart.isFinite && !rangeStart.isNaN {
+                start = min(start, rangeStart)
+            }
+            if rangeEnd.isFinite && !rangeEnd.isNaN {
+                end = max(end, rangeEnd)
+            }
+        }
+
+        if start == Double.greatestFiniteMagnitude || end <= 0 {
+            seekableStartTime = 0
+            seekableEndTime = duration
+            isSeekable = duration > 0
+            return
+        }
+
+        seekableStartTime = start
+        seekableEndTime = end
+        isSeekable = (end - start) > 1
+    }
+
+    private func clampTimeToSeekableRange(_ time: TimeInterval) -> TimeInterval? {
+        if isSeekable {
+            let start = seekableStartTime
+            let end = seekableEndTime > start ? seekableEndTime : start
+            return min(max(time, start), end)
+        }
+
+        if duration > 0 {
+            return min(max(time, 0), duration)
+        }
+
+        return nil
     }
 }
