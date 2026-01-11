@@ -174,7 +174,7 @@ struct TimelineArticleRowView: View {
                     .lineLimit(2)
             }
 
-            if let imageURL = article.imageURL, let url = URL(string: imageURL) {
+            if let imageURL = article.resolvedThumbnailURL, let url = URL(string: imageURL) {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()
