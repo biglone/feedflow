@@ -7,12 +7,6 @@ struct FeedsListView: View {
     @State private var showingAddFeed = false
     @State private var showingYouTubeSearch = false
     @State private var showingImportSubscriptions = false
-    @State private var selectedFeed: Feed?
-    @StateObject private var feedManager: FeedManager
-
-    init() {
-        _feedManager = StateObject(wrappedValue: FeedManager(modelContext: ModelContext(try! ModelContainer(for: Feed.self))))
-    }
 
     var body: some View {
         NavigationStack {
@@ -25,7 +19,9 @@ struct FeedsListView: View {
                     )
                 } else {
                     ForEach(feeds) { feed in
-                        NavigationLink(value: feed) {
+                        NavigationLink {
+                            ArticlesListView(feed: feed)
+                        } label: {
                             FeedRowView(feed: feed)
                         }
                     }
@@ -33,9 +29,6 @@ struct FeedsListView: View {
                 }
             }
             .navigationTitle("Feeds")
-            .navigationDestination(for: Feed.self) { feed in
-                ArticlesListView(feed: feed)
-            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -64,6 +57,7 @@ struct FeedsListView: View {
                 }
             }
             .refreshable {
+                let feedManager = FeedManager(modelContext: modelContext)
                 await feedManager.refreshAllFeeds()
             }
             .sheet(isPresented: $showingAddFeed) {

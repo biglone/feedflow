@@ -6,7 +6,6 @@ struct ArticlesListView: View {
     @Environment(\.modelContext) private var modelContext
     let feed: Feed?
 
-    @State private var selectedArticle: Article?
     @State private var isLoadingMoreYouTubeVideos = false
     @State private var youTubeLoadError: Error?
     @State private var showingYouTubeLoadError = false
@@ -15,7 +14,17 @@ struct ArticlesListView: View {
 
     var articles: [Article] {
         guard let feed = feed else { return [] }
-        return feed.articles.sorted { ($0.publishedAt ?? Date.distantPast) > ($1.publishedAt ?? Date.distantPast) }
+        return feed.articles.sorted {
+            let lhsDate = $0.publishedAt ?? Date.distantPast
+            let rhsDate = $1.publishedAt ?? Date.distantPast
+            if lhsDate != rhsDate {
+                return lhsDate > rhsDate
+            }
+            if $0.guid != $1.guid {
+                return $0.guid > $1.guid
+            }
+            return $0.id.uuidString > $1.id.uuidString
+        }
     }
 
     var body: some View {
@@ -28,7 +37,9 @@ struct ArticlesListView: View {
                 )
             } else {
                 ForEach(articles) { article in
-                    NavigationLink(value: article) {
+                    NavigationLink {
+                        ArticleReaderView(article: article)
+                    } label: {
                         ArticleRowView(article: article)
                     }
                 }
@@ -63,9 +74,6 @@ struct ArticlesListView: View {
         }
         .navigationTitle(feed?.title ?? "Articles")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(for: Article.self) { article in
-            ArticleReaderView(article: article)
-        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
@@ -107,11 +115,15 @@ struct ArticlesListView: View {
         return components?.queryItems?.first(where: { $0.name == "channel_id" })?.value
     }
 
+    @MainActor
     private func loadMoreYouTubeVideos(channelId: String) async {
         guard let feed else { return }
 
         isLoadingMoreYouTubeVideos = true
         defer { isLoadingMoreYouTubeVideos = false }
+
+        // Avoid re-entrant List updates while SwiftUI is laying out visible cells.
+        await Task.yield()
 
         do {
             let feedManager = FeedManager(modelContext: modelContext)

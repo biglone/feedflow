@@ -17,7 +17,9 @@ struct StarredArticlesView: View {
                     )
                 } else {
                     ForEach(starredArticles) { article in
-                        NavigationLink(value: article) {
+                        NavigationLink {
+                            ArticleReaderView(article: article)
+                        } label: {
                             TimelineArticleRowView(article: article)
                         }
                         .swipeActions(edge: .trailing) {
@@ -31,9 +33,6 @@ struct StarredArticlesView: View {
                 }
             }
             .navigationTitle("Starred")
-            .navigationDestination(for: Article.self) { article in
-                ArticleReaderView(article: article)
-            }
         }
     }
 

@@ -40,7 +40,9 @@ struct TimelineView: View {
                     )
                 } else {
                     ForEach(filteredArticles) { article in
-                        NavigationLink(value: article) {
+                        NavigationLink {
+                            ArticleReaderView(article: article)
+                        } label: {
                             TimelineArticleRowView(article: article)
                         }
                         .swipeActions(edge: .leading) {
@@ -69,9 +71,6 @@ struct TimelineView: View {
                 }
             }
             .navigationTitle("Timeline")
-            .navigationDestination(for: Article.self) { article in
-                ArticleReaderView(article: article)
-            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {

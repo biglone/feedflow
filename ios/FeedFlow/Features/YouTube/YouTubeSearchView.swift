@@ -7,7 +7,10 @@ struct YouTubeSearchView: View {
 
     @State private var searchText = ""
     @State private var channels: [APIClient.YouTubeChannelDTO] = []
+    @State private var searchQuery = ""
+    @State private var nextPageToken: String?
     @State private var isSearching = false
+    @State private var isLoadingMore = false
     @State private var error: Error?
     @State private var showingError = false
     @State private var subscribingChannelId: String?
@@ -33,6 +36,8 @@ struct YouTubeSearchView: View {
                         Button {
                             searchText = ""
                             channels = []
+                            searchQuery = ""
+                            nextPageToken = nil
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundStyle(.secondary)
@@ -72,12 +77,29 @@ struct YouTubeSearchView: View {
                     }
                     Spacer()
                 } else {
-                    List(channels, id: \.id) { channel in
-                        YouTubeChannelRowView(
-                            channel: channel,
-                            isSubscribing: subscribingChannelId == channel.id,
-                            onSubscribe: { await subscribeToChannel(channel) }
-                        )
+                    List {
+                        ForEach(channels, id: \.id) { channel in
+                            YouTubeChannelRowView(
+                                channel: channel,
+                                isSubscribing: subscribingChannelId == channel.id,
+                                onSubscribe: { await subscribeToChannel(channel) }
+                            )
+                        }
+
+                        if let nextPageToken {
+                            Button {
+                                Task { await loadMore(nextPageToken: nextPageToken) }
+                            } label: {
+                                HStack {
+                                    Text("Load more")
+                                    Spacer()
+                                    if isLoadingMore {
+                                        ProgressView()
+                                    }
+                                }
+                            }
+                            .disabled(isLoadingMore)
+                        }
                     }
                     .listStyle(.plain)
                 }
@@ -99,20 +121,51 @@ struct YouTubeSearchView: View {
         }
     }
 
+    @MainActor
     private func search() async {
-        guard !searchText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        let query = searchText.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return }
 
         isSearching = true
         defer { isSearching = false }
 
         do {
-            channels = try await apiClient.searchYouTubeChannels(query: searchText)
+            let page = try await apiClient.searchYouTubeChannelsPage(query: query, limit: 50, pageToken: nil)
+            searchQuery = query
+            channels = page.channels
+            nextPageToken = page.nextPageToken
         } catch {
             self.error = error
             self.showingError = true
         }
     }
 
+    @MainActor
+    private func loadMore(nextPageToken: String) async {
+        guard !searchQuery.isEmpty else { return }
+        guard !isSearching else { return }
+        guard !isLoadingMore else { return }
+
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+
+        do {
+            let page = try await apiClient.searchYouTubeChannelsPage(
+                query: searchQuery,
+                limit: 50,
+                pageToken: nextPageToken
+            )
+
+            let existingIds = Set(channels.map(\.id))
+            channels.append(contentsOf: page.channels.filter { !existingIds.contains($0.id) })
+            self.nextPageToken = page.nextPageToken
+        } catch {
+            self.error = error
+            self.showingError = true
+        }
+    }
+
+    @MainActor
     private func subscribeToChannel(_ channel: APIClient.YouTubeChannelDTO) async {
         subscribingChannelId = channel.id
         defer { subscribingChannelId = nil }

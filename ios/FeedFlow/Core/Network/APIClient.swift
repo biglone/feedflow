@@ -352,6 +352,7 @@ actor APIClient {
 
     struct YouTubeSearchResponse: Decodable {
         let channels: [YouTubeChannelDTO]
+        let nextPageToken: String?
     }
 
     struct YouTubeChannelResponse: Decodable {
@@ -407,10 +408,25 @@ actor APIClient {
     }
 
     func searchYouTubeChannels(query: String, limit: Int = 50) async throws -> [YouTubeChannelDTO] {
-        let response: YouTubeSearchResponse = try await request(
-            endpoint: "/youtube/search?q=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query)&limit=\(limit)"
-        )
-        return response.channels
+        let page = try await searchYouTubeChannelsPage(query: query, limit: limit, pageToken: nil)
+        return page.channels
+    }
+
+    func searchYouTubeChannelsPage(
+        query: String,
+        limit: Int = 50,
+        pageToken: String?
+    ) async throws -> (channels: [YouTubeChannelDTO], nextPageToken: String?) {
+        let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+
+        var endpoint = "/youtube/search?q=\(encodedQuery)&limit=\(limit)"
+        if let pageToken, !pageToken.isEmpty {
+            let encodedToken = pageToken.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? pageToken
+            endpoint += "&pageToken=\(encodedToken)"
+        }
+
+        let response: YouTubeSearchResponse = try await request(endpoint: endpoint)
+        return (response.channels, response.nextPageToken)
     }
 
     func getYouTubeChannel(id: String) async throws -> YouTubeChannelDTO? {
