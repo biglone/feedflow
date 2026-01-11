@@ -72,6 +72,22 @@ function updateXcodeGenProjectYml({ projectYmlPath, version, build }) {
   fs.writeFileSync(projectYmlPath, updated.join("\n"), "utf8");
 }
 
+function updateXcodeProjectPbxproj({ pbxprojPath, version, build }) {
+  if (!fs.existsSync(pbxprojPath)) return;
+  const original = fs.readFileSync(pbxprojPath, "utf8");
+
+  let updated = original.replace(/MARKETING_VERSION = [^;]+;/g, `MARKETING_VERSION = ${version};`);
+  if (build != null) {
+    updated = updated.replace(/CURRENT_PROJECT_VERSION = [^;]+;/g, `CURRENT_PROJECT_VERSION = ${build};`);
+  }
+
+  if (updated === original) {
+    throw new Error(`Failed to update version settings in ${pbxprojPath}`);
+  }
+
+  fs.writeFileSync(pbxprojPath, updated, "utf8");
+}
+
 function parseArgs(argv) {
   const args = argv.slice(2);
   const version = args[0];
@@ -115,6 +131,7 @@ function main() {
   const backendPackageJsonPath = path.join(repoRoot, "backend", "package.json");
   const backendPackageLockPath = path.join(repoRoot, "backend", "package-lock.json");
   const iosProjectYmlPath = path.join(repoRoot, "ios", "project.yml");
+  const iosPbxprojPath = path.join(repoRoot, "ios", "FeedFlow.xcodeproj", "project.pbxproj");
 
   const previousProjectYml = fs.readFileSync(iosProjectYmlPath, "utf8");
   const currentBuildMatch = previousProjectYml.match(/^\s*CURRENT_PROJECT_VERSION:\s*"([^"]+)"\s*$/m);
@@ -131,6 +148,11 @@ function main() {
     version,
     build: nextBuild,
   });
+  updateXcodeProjectPbxproj({
+    pbxprojPath: iosPbxprojPath,
+    version,
+    build: nextBuild,
+  });
 
   updatePackageVersion({
     packageJsonPath: backendPackageJsonPath,
@@ -140,6 +162,9 @@ function main() {
 
   console.log("Updated versions:");
   console.log(`- ios/project.yml: MARKETING_VERSION=${version}${nextBuild ? ` CURRENT_PROJECT_VERSION=${nextBuild}` : ""}`);
+  if (fs.existsSync(iosPbxprojPath)) {
+    console.log(`- ios/FeedFlow.xcodeproj/project.pbxproj: MARKETING_VERSION=${version}${nextBuild ? ` CURRENT_PROJECT_VERSION=${nextBuild}` : ""}`);
+  }
   console.log(`- backend/package.json: version=${version}`);
   if (fs.existsSync(backendPackageLockPath)) {
     console.log(`- backend/package-lock.json: version=${version}`);
@@ -157,4 +182,3 @@ try {
   console.error(err instanceof Error ? err.message : String(err));
   process.exit(1);
 }
-
