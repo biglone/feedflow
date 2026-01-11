@@ -220,31 +220,55 @@ private enum RecommendedFeedCatalog {
         "Podcast": 10,
     ]
 
-    static let items: [RecommendedFeed] = [
-        RecommendedFeed(
-            title: "少数派",
-            url: "https://sspai.com/feed",
-            category: "中文",
-            description: "数字生活与效率"
-        ),
-        RecommendedFeed(
-            title: "阮一峰的网络日志",
-            url: "https://www.ruanyifeng.com/blog/atom.xml",
-            category: "中文",
-            description: "技术、周刊与随笔"
-        ),
-        RecommendedFeed(
-            title: "V2EX",
-            url: "https://www.v2ex.com/index.xml",
-            category: "中文",
-            description: "创意工作者社区"
-        ),
-        RecommendedFeed(
-            title: "Linux Do",
-            url: "https://linux.do/latest.rss",
-            category: "Linux",
-            description: "中文 Linux 社区"
-        ),
+	    static let items: [RecommendedFeed] = [
+	        RecommendedFeed(
+	            title: "少数派",
+	            url: "https://sspai.com/feed",
+	            category: "中文",
+	            description: "数字生活与效率"
+	        ),
+	        RecommendedFeed(
+	            title: "小众软件",
+	            url: "https://www.appinn.com/feed/",
+	            category: "中文",
+	            description: "精品应用与效率工具"
+	        ),
+	        RecommendedFeed(
+	            title: "阮一峰的网络日志",
+	            url: "https://www.ruanyifeng.com/blog/atom.xml",
+	            category: "中文",
+	            description: "技术、周刊与随笔"
+	        ),
+	        RecommendedFeed(
+	            title: "V2EX",
+	            url: "https://www.v2ex.com/index.xml",
+	            category: "中文",
+	            description: "创意工作者社区"
+	        ),
+	        RecommendedFeed(
+	            title: "酷壳",
+	            url: "https://coolshell.cn/feed",
+	            category: "中文",
+	            description: "技术与思考"
+	        ),
+	        RecommendedFeed(
+	            title: "爱范儿",
+	            url: "https://www.ifanr.com/feed",
+	            category: "中文",
+	            description: "科技与消费电子"
+	        ),
+	        RecommendedFeed(
+	            title: "HelloGitHub",
+	            url: "https://hellogithub.com/rss",
+	            category: "中文",
+	            description: "有趣的开源项目精选"
+	        ),
+	        RecommendedFeed(
+	            title: "Linux Do",
+	            url: "https://linux.do/latest.rss",
+	            category: "Linux",
+	            description: "中文 Linux 社区"
+	        ),
         RecommendedFeed(
             title: "Linux.com",
             url: "https://www.linux.com/feed/",
@@ -275,46 +299,106 @@ private enum RecommendedFeedCatalog {
             category: "Linux",
             description: "Arch announcements"
         ),
-        RecommendedFeed(
-            title: "Kernel Releases",
-            url: "https://www.kernel.org/feeds/kdist.xml",
-            category: "Linux",
-            description: "Linux kernel releases"
-        ),
-        RecommendedFeed(
-            title: "GitHub Blog",
-            url: "https://github.blog/feed/",
-            category: "Programming",
-            description: "Engineering, open source, and GitHub updates"
-        ),
-        RecommendedFeed(
-            title: "Martin Fowler",
-            url: "https://martinfowler.com/feed.atom",
-            category: "Programming",
-            description: "Architecture, refactoring, and software design"
-        ),
-        RecommendedFeed(
-            title: "The Go Blog",
-            url: "https://go.dev/blog/feed.atom",
-            category: "Programming",
-            description: "Go official blog"
-        ),
+	        RecommendedFeed(
+	            title: "Kernel Releases",
+	            url: "https://www.kernel.org/feeds/kdist.xml",
+	            category: "Linux",
+	            description: "Linux kernel releases"
+	        ),
+	        RecommendedFeed(
+	            title: "LXer",
+	            url: "https://lxer.com/module/newswire/headlines.rss",
+	            category: "Linux",
+	            description: "Linux newswire headlines"
+	        ),
+	        RecommendedFeed(
+	            title: "LWN.net",
+	            url: "https://lwn.net/headlines/rss",
+	            category: "Linux",
+	            description: "Linux and free software news"
+	        ),
+	        RecommendedFeed(
+	            title: "DistroWatch",
+	            url: "https://distrowatch.com/news/dwd.xml",
+	            category: "Linux",
+	            description: "Linux distributions news"
+	        ),
+	        RecommendedFeed(
+	            title: "GitHub Blog",
+	            url: "https://github.blog/feed/",
+	            category: "Programming",
+	            description: "Engineering, open source, and GitHub updates"
+	        ),
+	        RecommendedFeed(
+	            title: "Stack Overflow Blog",
+	            url: "https://stackoverflow.blog/feed/",
+	            category: "Programming",
+	            description: "Engineering and developer culture"
+	        ),
+	        RecommendedFeed(
+	            title: "Martin Fowler",
+	            url: "https://martinfowler.com/feed.atom",
+	            category: "Programming",
+	            description: "Architecture, refactoring, and software design"
+	        ),
+	        RecommendedFeed(
+	            title: "Julia Evans",
+	            url: "https://jvns.ca/atom.xml",
+	            category: "Programming",
+	            description: "Debugging, Linux, and programming"
+	        ),
+	        RecommendedFeed(
+	            title: "Overreacted",
+	            url: "https://overreacted.io/rss.xml",
+	            category: "Programming",
+	            description: "React and engineering essays"
+	        ),
+	        RecommendedFeed(
+	            title: "Google Developers Blog",
+	            url: "https://developers.googleblog.com/feeds/posts/default",
+	            category: "Programming",
+	            description: "Google developer updates"
+	        ),
+	        RecommendedFeed(
+	            title: "Python Insider",
+	            url: "https://blog.python.org/feeds/posts/default",
+	            category: "Programming",
+	            description: "Python release and ecosystem news"
+	        ),
+	        RecommendedFeed(
+	            title: "The Go Blog",
+	            url: "https://go.dev/blog/feed.atom",
+	            category: "Programming",
+	            description: "Go official blog"
+	        ),
         RecommendedFeed(
             title: "Rust Blog",
             url: "https://blog.rust-lang.org/feed.xml",
             category: "Programming",
             description: "Rust language updates"
         ),
-        RecommendedFeed(
-            title: "Swift.org",
-            url: "https://swift.org/atom.xml",
-            category: "Programming",
-            description: "Swift language updates"
-        ),
-        RecommendedFeed(
-            title: "Kubernetes Blog",
-            url: "https://kubernetes.io/feed.xml",
-            category: "DevOps",
+	        RecommendedFeed(
+	            title: "Swift.org",
+	            url: "https://swift.org/atom.xml",
+	            category: "Programming",
+	            description: "Swift language updates"
+	        ),
+	        RecommendedFeed(
+	            title: "Swift by Sundell",
+	            url: "https://swiftbysundell.com/feed.rss",
+	            category: "Programming",
+	            description: "Swift and app development"
+	        ),
+	        RecommendedFeed(
+	            title: "Dropbox Tech",
+	            url: "https://dropbox.tech/feed",
+	            category: "Programming",
+	            description: "Dropbox engineering blog"
+	        ),
+	        RecommendedFeed(
+	            title: "Kubernetes Blog",
+	            url: "https://kubernetes.io/feed.xml",
+	            category: "DevOps",
             description: "Kubernetes blog & announcements"
         ),
         RecommendedFeed(
@@ -323,82 +407,232 @@ private enum RecommendedFeedCatalog {
             category: "DevOps",
             description: "Docker news & engineering"
         ),
-        RecommendedFeed(
-            title: "Cloudflare Blog",
-            url: "https://blog.cloudflare.com/rss/",
-            category: "DevOps",
-            description: "Networking, security, and performance"
-        ),
-        RecommendedFeed(
-            title: "OpenAI Blog",
-            url: "https://openai.com/blog/rss.xml",
+	        RecommendedFeed(
+	            title: "Cloudflare Blog",
+	            url: "https://blog.cloudflare.com/rss/",
+	            category: "DevOps",
+	            description: "Networking, security, and performance"
+	        ),
+	        RecommendedFeed(
+	            title: "AWS News Blog",
+	            url: "https://aws.amazon.com/blogs/aws/feed/",
+	            category: "DevOps",
+	            description: "AWS announcements and launches"
+	        ),
+	        RecommendedFeed(
+	            title: "GitLab Blog",
+	            url: "https://about.gitlab.com/atom.xml",
+	            category: "DevOps",
+	            description: "DevOps platform updates"
+	        ),
+	        RecommendedFeed(
+	            title: "HashiCorp Blog",
+	            url: "https://www.hashicorp.com/blog/feed.xml",
+	            category: "DevOps",
+	            description: "Terraform, Vault, and cloud tooling"
+	        ),
+	        RecommendedFeed(
+	            title: "Spotify Engineering",
+	            url: "https://engineering.atspotify.com/feed",
+	            category: "DevOps",
+	            description: "Spotify engineering stories"
+	        ),
+	        RecommendedFeed(
+	            title: "Meta Engineering",
+	            url: "https://engineering.fb.com/feed/",
+	            category: "DevOps",
+	            description: "Meta engineering blog"
+	        ),
+	        RecommendedFeed(
+	            title: "OpenAI Blog",
+	            url: "https://openai.com/blog/rss.xml",
             category: "AI",
             description: "OpenAI updates"
         ),
-        RecommendedFeed(
-            title: "Google AI",
-            url: "https://blog.google/technology/ai/rss/",
-            category: "AI",
-            description: "Google AI news"
-        ),
-        RecommendedFeed(
-            title: "Hacker News",
-            url: "https://hnrss.org/frontpage",
-            category: "Tech",
-            description: "Tech & startups"
-        ),
-        RecommendedFeed(
-            title: "The Register",
-            url: "https://www.theregister.com/headlines.atom",
-            category: "Tech",
-            description: "IT industry news"
-        ),
+	        RecommendedFeed(
+	            title: "Google AI",
+	            url: "https://blog.google/technology/ai/rss/",
+	            category: "AI",
+	            description: "Google AI news"
+	        ),
+	        RecommendedFeed(
+	            title: "Hugging Face",
+	            url: "https://huggingface.co/blog/feed.xml",
+	            category: "AI",
+	            description: "Open-source AI community updates"
+	        ),
+	        RecommendedFeed(
+	            title: "AWS Machine Learning Blog",
+	            url: "https://aws.amazon.com/blogs/machine-learning/feed/",
+	            category: "AI",
+	            description: "Machine learning guides and releases"
+	        ),
+	        RecommendedFeed(
+	            title: "The Gradient",
+	            url: "https://thegradient.pub/rss/",
+	            category: "AI",
+	            description: "AI research and commentary"
+	        ),
+	        RecommendedFeed(
+	            title: "Google Research",
+	            url: "https://research.googleblog.com/feeds/posts/default",
+	            category: "AI",
+	            description: "Research highlights"
+	        ),
+	        RecommendedFeed(
+	            title: "Microsoft Research",
+	            url: "https://www.microsoft.com/en-us/research/feed/",
+	            category: "AI",
+	            description: "Research and AI updates"
+	        ),
+	        RecommendedFeed(
+	            title: "Hacker News",
+	            url: "https://hnrss.org/frontpage",
+	            category: "Tech",
+	            description: "Tech & startups"
+	        ),
+	        RecommendedFeed(
+	            title: "TechCrunch",
+	            url: "https://techcrunch.com/feed/",
+	            category: "Tech",
+	            description: "Startups and technology news"
+	        ),
+	        RecommendedFeed(
+	            title: "The Register",
+	            url: "https://www.theregister.com/headlines.atom",
+	            category: "Tech",
+	            description: "IT industry news"
+	        ),
         RecommendedFeed(
             title: "The Verge",
             url: "https://www.theverge.com/rss/index.xml",
             category: "Tech",
             description: "Technology news"
         ),
-        RecommendedFeed(
-            title: "Ars Technica",
-            url: "https://feeds.arstechnica.com/arstechnica/index",
-            category: "Tech",
-            description: "Technology & science"
-        ),
-        RecommendedFeed(
-            title: "Lobsters",
-            url: "https://lobste.rs/rss",
-            category: "Community",
-            description: "Tech community discussions"
-        ),
-        RecommendedFeed(
-            title: "Smashing Magazine",
-            url: "https://www.smashingmagazine.com/feed/",
-            category: "Design",
-            description: "UX/UI & front-end"
-        ),
-        RecommendedFeed(
-            title: "Nielsen Norman Group",
-            url: "https://www.nngroup.com/feed/rss/",
-            category: "Design",
-            description: "UX research & guidance"
-        ),
-        RecommendedFeed(
-            title: "Krebs on Security",
-            url: "https://krebsonsecurity.com/feed/",
-            category: "Security",
-            description: "Security news & investigations"
-        ),
-        RecommendedFeed(
-            title: "NASA Breaking News",
-            url: "https://www.nasa.gov/rss/dyn/breaking_news.rss",
-            category: "Science",
-            description: "NASA updates"
-        ),
-        RecommendedFeed(
-            title: "The Changelog",
-            url: "https://changelog.com/podcast/feed",
-            category: "Podcast",
+	        RecommendedFeed(
+	            title: "Ars Technica",
+	            url: "https://feeds.arstechnica.com/arstechnica/index",
+	            category: "Tech",
+	            description: "Technology & science"
+	        ),
+	        RecommendedFeed(
+	            title: "WIRED",
+	            url: "https://www.wired.com/feed/rss",
+	            category: "Tech",
+	            description: "Technology and culture"
+	        ),
+	        RecommendedFeed(
+	            title: "Engadget",
+	            url: "https://www.engadget.com/rss.xml",
+	            category: "Tech",
+	            description: "Gadgets and consumer tech"
+	        ),
+	        RecommendedFeed(
+	            title: "9to5Mac",
+	            url: "https://9to5mac.com/feed/",
+	            category: "Tech",
+	            description: "Apple news and rumors"
+	        ),
+	        RecommendedFeed(
+	            title: "MacRumors",
+	            url: "https://www.macrumors.com/macrumors.xml",
+	            category: "Tech",
+	            description: "Apple rumors and news"
+	        ),
+	        RecommendedFeed(
+	            title: "Android Police",
+	            url: "https://www.androidpolice.com/feed/",
+	            category: "Tech",
+	            description: "Android and mobile tech"
+	        ),
+	        RecommendedFeed(
+	            title: "Lobsters",
+	            url: "https://lobste.rs/rss",
+	            category: "Community",
+	            description: "Tech community discussions"
+	        ),
+	        RecommendedFeed(
+	            title: "DEV Community",
+	            url: "https://dev.to/feed",
+	            category: "Community",
+	            description: "Community-driven developer stories"
+	        ),
+	        RecommendedFeed(
+	            title: "Smashing Magazine",
+	            url: "https://www.smashingmagazine.com/feed/",
+	            category: "Design",
+	            description: "UX/UI & front-end"
+	        ),
+	        RecommendedFeed(
+	            title: "A List Apart",
+	            url: "https://alistapart.com/main/feed/",
+	            category: "Design",
+	            description: "Design, development, and web standards"
+	        ),
+	        RecommendedFeed(
+	            title: "CSS-Tricks",
+	            url: "https://css-tricks.com/feed/",
+	            category: "Design",
+	            description: "CSS and front-end tips"
+	        ),
+	        RecommendedFeed(
+	            title: "Nielsen Norman Group",
+	            url: "https://www.nngroup.com/feed/rss/",
+	            category: "Design",
+	            description: "UX research & guidance"
+	        ),
+	        RecommendedFeed(
+	            title: "Krebs on Security",
+	            url: "https://krebsonsecurity.com/feed/",
+	            category: "Security",
+	            description: "Security news & investigations"
+	        ),
+	        RecommendedFeed(
+	            title: "The Hacker News",
+	            url: "https://feeds.feedburner.com/TheHackersNews",
+	            category: "Security",
+	            description: "Cybersecurity news"
+	        ),
+	        RecommendedFeed(
+	            title: "Schneier on Security",
+	            url: "https://www.schneier.com/feed/atom/",
+	            category: "Security",
+	            description: "Security analysis and commentary"
+	        ),
+	        RecommendedFeed(
+	            title: "SANS Internet Storm Center",
+	            url: "https://isc.sans.edu/rssfeed.xml",
+	            category: "Security",
+	            description: "Security diary and alerts"
+	        ),
+	        RecommendedFeed(
+	            title: "BleepingComputer",
+	            url: "https://www.bleepingcomputer.com/feed/",
+	            category: "Security",
+	            description: "Security news and malware reports"
+	        ),
+	        RecommendedFeed(
+	            title: "NASA Breaking News",
+	            url: "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+	            category: "Science",
+	            description: "NASA updates"
+	        ),
+	        RecommendedFeed(
+	            title: "NASA Image of the Day",
+	            url: "https://www.nasa.gov/rss/dyn/lg_image_of_the_day.rss",
+	            category: "Science",
+	            description: "Daily space image"
+	        ),
+	        RecommendedFeed(
+	            title: "Space.com",
+	            url: "https://www.space.com/feeds/all",
+	            category: "Science",
+	            description: "Space news and discoveries"
+	        ),
+	        RecommendedFeed(
+	            title: "The Changelog",
+	            url: "https://changelog.com/podcast/feed",
+	            category: "Podcast",
             kind: .podcast,
             description: "Software engineering podcast"
         ),
@@ -430,15 +664,50 @@ private enum RecommendedFeedCatalog {
             kind: .podcast,
             description: "Linux podcast"
         ),
-        RecommendedFeed(
-            title: "Darknet Diaries",
-            url: "https://feeds.megaphone.fm/darknetdiaries",
-            category: "Podcast",
-            kind: .podcast,
-            description: "True stories from the dark side of the internet"
-        ),
-    ]
-}
+	        RecommendedFeed(
+	            title: "Darknet Diaries",
+	            url: "https://feeds.megaphone.fm/darknetdiaries",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "True stories from the dark side of the internet"
+	        ),
+	        RecommendedFeed(
+	            title: "Accidental Tech Podcast",
+	            url: "https://atp.fm/rss",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Three nerds discussing tech"
+	        ),
+	        RecommendedFeed(
+	            title: "Under the Radar",
+	            url: "https://www.relay.fm/radar/feed",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "App development and indie business"
+	        ),
+	        RecommendedFeed(
+	            title: "Lex Fridman Podcast",
+	            url: "https://lexfridman.com/feed/podcast/",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "AI, science, and long-form conversations"
+	        ),
+	        RecommendedFeed(
+	            title: "Stack Overflow Podcast",
+	            url: "https://stackoverflow.blog/podcast/feed/",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Developer stories and tech news"
+	        ),
+	        RecommendedFeed(
+	            title: "Swift by Sundell (Podcast)",
+	            url: "https://swiftbysundell.com/podcast/feed.rss",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Swift development interviews"
+	        ),
+	    ]
+	}
 
 struct RecommendedFeedsView: View {
     @Environment(\.modelContext) private var modelContext
