@@ -11,6 +11,7 @@ import {
   getChannelRssUrl,
   formatDuration,
   getSubscriptions,
+  resolveReplayVideoIdForUpcomingVideo,
 } from "../services/youtube.js";
 import { getStreamUrls, getVideoInfo } from "../services/ytdlp.js";
 import {
@@ -306,7 +307,7 @@ youtubeRouter.get(
   "/stream/:id",
   zValidator("query", streamSchema),
   async (c) => {
-    const videoId = c.req.param("id");
+    const requestedVideoId = c.req.param("id");
     const { type } = c.req.valid("query");
 
     try {
@@ -317,7 +318,40 @@ youtubeRouter.get(
         }
       }
 
-      const streams = await getStreamUrls(videoId);
+      let videoId = requestedVideoId;
+      let streams: Awaited<ReturnType<typeof getStreamUrls>>;
+
+      try {
+        streams = await getStreamUrls(videoId);
+      } catch (error) {
+        const ytdlpMessage = extractYtdlpErrorMessage(error);
+
+        if (
+          ytdlpMessage &&
+          /This live event will begin in/i.test(ytdlpMessage)
+        ) {
+          try {
+            const replayVideoId = await resolveReplayVideoIdForUpcomingVideo(videoId);
+            if (replayVideoId && replayVideoId !== videoId) {
+              videoId = replayVideoId;
+              streams = await getStreamUrls(videoId);
+            } else {
+              return c.json(
+                { error: ytdlpMessage, code: "LIVE_NOT_STARTED" },
+                409
+              );
+            }
+          } catch (resolveError) {
+            console.error("Failed to resolve replay video ID:", resolveError);
+            return c.json(
+              { error: ytdlpMessage, code: "LIVE_NOT_STARTED" },
+              409
+            );
+          }
+        } else {
+          throw error;
+        }
+      }
 
       // Build proxy URLs instead of direct YouTube URLs
       const protocol =
@@ -357,6 +391,9 @@ youtubeRouter.get(
       }
       if (type === "audio" || type === "both") {
         response.audioUrl = streams.audioUrl ? buildProxyUrl("audio") : null;
+      }
+      if (videoId !== requestedVideoId) {
+        response.resolvedVideoId = videoId;
       }
 
       if (!response.videoUrl && !response.audioUrl) {

@@ -27,6 +27,158 @@ export interface YouTubeVideo {
   channelTitle: string;
 }
 
+export interface YouTubeVideoMeta {
+  id: string;
+  title: string;
+  channelId: string;
+  channelTitle: string;
+  publishedAt: string;
+  duration: string;
+  thumbnailUrl: string;
+  liveBroadcastContent: string;
+  privacyStatus: string;
+}
+
+export async function getVideoMeta(
+  videoId: string
+): Promise<YouTubeVideoMeta | null> {
+  if (!process.env.YOUTUBE_API_KEY) {
+    return null;
+  }
+
+  const response = await youtube.videos.list({
+    part: ["snippet", "contentDetails", "status"],
+    id: [videoId],
+  });
+
+  const video = response.data.items?.[0];
+  if (!video?.id) return null;
+
+  return {
+    id: video.id,
+    title: video.snippet?.title || "Untitled",
+    channelId: video.snippet?.channelId || "",
+    channelTitle: video.snippet?.channelTitle || "",
+    publishedAt: video.snippet?.publishedAt || "",
+    duration: video.contentDetails?.duration || "",
+    thumbnailUrl:
+      video.snippet?.thumbnails?.high?.url ||
+      video.snippet?.thumbnails?.medium?.url ||
+      video.snippet?.thumbnails?.default?.url ||
+      "",
+    liveBroadcastContent: video.snippet?.liveBroadcastContent || "none",
+    privacyStatus: video.status?.privacyStatus || "",
+  };
+}
+
+const replayResolutionCache = new Map<
+  string,
+  { replayVideoId: string | null; timestamp: number }
+>();
+const REPLAY_RESOLUTION_TTL_MS = 30 * 60 * 1000;
+
+export async function resolveReplayVideoIdForUpcomingVideo(
+  videoId: string
+): Promise<string | null> {
+  const cached = replayResolutionCache.get(videoId);
+  if (cached && Date.now() - cached.timestamp < REPLAY_RESOLUTION_TTL_MS) {
+    return cached.replayVideoId;
+  }
+
+  const meta = await getVideoMeta(videoId);
+  if (!meta?.channelId || !meta.title) {
+    replayResolutionCache.set(videoId, { replayVideoId: null, timestamp: Date.now() });
+    return null;
+  }
+
+  const isUpcoming =
+    meta.liveBroadcastContent === "upcoming" ||
+    parseDuration(meta.duration) === 0;
+  if (!isUpcoming) {
+    replayResolutionCache.set(videoId, { replayVideoId: null, timestamp: Date.now() });
+    return null;
+  }
+
+  const searchResponse = await youtube.search.list({
+    part: ["snippet"],
+    channelId: meta.channelId,
+    q: meta.title,
+    type: ["video"],
+    order: "date",
+    maxResults: 10,
+  });
+
+  const candidateIds =
+    (searchResponse.data.items
+      ?.map((item) => item.id?.videoId)
+      .filter((id): id is string => Boolean(id)) || []).filter((id) => id !== videoId);
+
+  if (candidateIds.length === 0) {
+    replayResolutionCache.set(videoId, { replayVideoId: null, timestamp: Date.now() });
+    return null;
+  }
+
+  const videosResponse = await youtube.videos.list({
+    part: ["snippet", "contentDetails", "status"],
+    id: candidateIds,
+  });
+
+  const originalPublishedAt = Date.parse(meta.publishedAt || "");
+
+  const candidates = (videosResponse.data.items || [])
+    .map((v) => {
+      const title = v.snippet?.title || "";
+      const channelId = v.snippet?.channelId || "";
+      const publishedAt = v.snippet?.publishedAt || "";
+      const duration = v.contentDetails?.duration || "";
+      const liveBroadcastContent = v.snippet?.liveBroadcastContent || "none";
+      const privacyStatus = v.status?.privacyStatus || "";
+      return {
+        id: v.id || "",
+        title,
+        channelId,
+        publishedAt,
+        durationSeconds: parseDuration(duration),
+        liveBroadcastContent,
+        privacyStatus,
+      };
+    })
+    .filter((v) => Boolean(v.id))
+    .filter((v) => v.channelId === meta.channelId)
+    .filter((v) => v.title === meta.title)
+    .filter((v) => v.privacyStatus === "public")
+    .filter((v) => v.liveBroadcastContent !== "upcoming")
+    .filter((v) => v.durationSeconds > 0);
+
+  if (candidates.length === 0) {
+    replayResolutionCache.set(videoId, { replayVideoId: null, timestamp: Date.now() });
+    return null;
+  }
+
+  candidates.sort((a, b) => {
+    const aTime = Date.parse(a.publishedAt || "");
+    const bTime = Date.parse(b.publishedAt || "");
+
+    const aIsAfter = Number.isFinite(originalPublishedAt) && aTime >= originalPublishedAt;
+    const bIsAfter = Number.isFinite(originalPublishedAt) && bTime >= originalPublishedAt;
+
+    if (aIsAfter !== bIsAfter) return aIsAfter ? -1 : 1;
+
+    const aDiff = Number.isFinite(originalPublishedAt)
+      ? Math.abs(aTime - originalPublishedAt)
+      : 0;
+    const bDiff = Number.isFinite(originalPublishedAt)
+      ? Math.abs(bTime - originalPublishedAt)
+      : 0;
+
+    return aDiff - bDiff;
+  });
+
+  const replayVideoId = candidates[0].id;
+  replayResolutionCache.set(videoId, { replayVideoId, timestamp: Date.now() });
+  return replayVideoId;
+}
+
 export async function searchChannels(
   query: string,
   maxResults: number = 10
