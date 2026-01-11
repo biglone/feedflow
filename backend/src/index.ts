@@ -9,6 +9,7 @@ import { feedsRouter } from "./routes/feeds.js";
 import { articlesRouter } from "./routes/articles.js";
 import { youtubeRouter } from "./routes/youtube.js";
 import { HTTPException } from "hono/http-exception";
+import { appName, appVersion } from "./version.js";
 
 const app = new Hono();
 
@@ -24,13 +25,13 @@ app.use(
 
 app.get("/", (c) => {
   return c.json({
-    name: "FeedFlow API",
-    version: "1.0.0",
+    name: appName,
+    version: appVersion,
     status: "running",
   });
 });
 
-const healthHandler = (c: Context) => c.json({ status: "ok" });
+const healthHandler = (c: Context) => c.json({ status: "ok", version: appVersion });
 
 app.get("/health", healthHandler);
 app.get("/api/health", healthHandler);

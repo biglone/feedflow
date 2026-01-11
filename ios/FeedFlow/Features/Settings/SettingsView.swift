@@ -22,6 +22,12 @@ struct SettingsView: View {
     @State private var showingClearDataAlert = false
     @State private var showingLogoutAlert = false
 
+    private var appVersionString: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+        return "\(version) (\(build))"
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -159,7 +165,7 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("1.0.0")
+                        Text(appVersionString)
                             .foregroundStyle(.secondary)
                     }
 
