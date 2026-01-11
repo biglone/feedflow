@@ -158,7 +158,7 @@ struct ArticleReaderView: View {
     }
 
     private var youtubeVideoId: String? {
-        article.youTubeVideoId
+        article.youtubeVideoId
     }
 
     private func markAsRead() {
