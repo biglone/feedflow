@@ -136,7 +136,14 @@ struct ArticleReaderView: View {
             }
         }
         .onAppear {
-            markAsRead()
+            // Avoid mutating SwiftData while the originating List is still
+            // completing its navigation/selection/layout updates (can crash
+            // SwiftUI's internal UICollectionView-backed List).
+            Task { @MainActor in
+                await Task.yield()
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                markAsRead()
+            }
         }
         .fullScreenCover(isPresented: $showingVideoPlayer) {
             if let videoId = youtubeVideoId {
@@ -188,24 +195,30 @@ struct ArticleReaderView: View {
 
     private func markAsRead() {
         if !article.isRead {
-            article.isRead = true
-            if let feed = article.feed, feed.unreadCount > 0 {
-                feed.unreadCount -= 1
+            withAnimation(nil) {
+                article.isRead = true
+                if let feed = article.feed, feed.unreadCount > 0 {
+                    feed.unreadCount -= 1
+                }
             }
             try? modelContext.save()
         }
     }
 
     private func toggleRead() {
-        article.isRead.toggle()
-        if let feed = article.feed {
-            feed.unreadCount = feed.articles.filter { !$0.isRead }.count
+        withAnimation(nil) {
+            article.isRead.toggle()
+            if let feed = article.feed {
+                feed.unreadCount = feed.articles.filter { !$0.isRead }.count
+            }
         }
         try? modelContext.save()
     }
 
     private func toggleStar() {
-        article.isStarred.toggle()
+        withAnimation(nil) {
+            article.isStarred.toggle()
+        }
         try? modelContext.save()
     }
 }

@@ -70,6 +70,7 @@ struct TimelineView: View {
                     }
                 }
             }
+            .transaction { $0.animation = nil }
             .navigationTitle("Timeline")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

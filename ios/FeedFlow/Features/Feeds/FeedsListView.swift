@@ -28,6 +28,7 @@ struct FeedsListView: View {
                     .onDelete(perform: deleteFeeds)
                 }
             }
+            .transaction { $0.animation = nil }
             .navigationTitle("Feeds")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

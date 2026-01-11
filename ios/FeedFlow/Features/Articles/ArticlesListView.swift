@@ -72,6 +72,7 @@ struct ArticlesListView: View {
                 }
             }
         }
+        .transaction { $0.animation = nil }
         .navigationTitle(feed?.title ?? "Articles")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

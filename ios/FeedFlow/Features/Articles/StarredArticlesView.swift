@@ -32,6 +32,7 @@ struct StarredArticlesView: View {
                     }
                 }
             }
+            .transaction { $0.animation = nil }
             .navigationTitle("Starred")
         }
     }
