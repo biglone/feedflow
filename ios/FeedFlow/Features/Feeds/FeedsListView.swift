@@ -7,6 +7,8 @@ struct FeedsListView: View {
     @State private var showingAddFeed = false
     @State private var showingYouTubeSearch = false
     @State private var showingImportSubscriptions = false
+    @State private var showingRecommendedFeeds = false
+    @AppStorage("didShowRecommendedFeeds") private var didShowRecommendedFeeds = false
 
     var body: some View {
         NavigationStack {
@@ -16,6 +18,11 @@ struct FeedsListView: View {
                         "No Feeds",
                         systemImage: "newspaper",
                         description: Text("Add your first RSS feed to get started")
+                    ) {
+                        Button("Browse Popular Subscriptions") {
+                            showingRecommendedFeeds = true
+                            didShowRecommendedFeeds = true
+                        }
                     )
                 } else {
                     ForEach(feeds) { feed in
@@ -48,6 +55,13 @@ struct FeedsListView: View {
                         Divider()
 
                         Button {
+                            showingRecommendedFeeds = true
+                            didShowRecommendedFeeds = true
+                        } label: {
+                            Label("Popular Subscriptions", systemImage: "sparkles")
+                        }
+
+                        Button {
                             showingImportSubscriptions = true
                         } label: {
                             Label("Import from YouTube", systemImage: "arrow.down.circle")
@@ -61,6 +75,12 @@ struct FeedsListView: View {
                 let feedManager = FeedManager(modelContext: modelContext)
                 await feedManager.refreshAllFeeds()
             }
+            .task {
+                if feeds.isEmpty && !didShowRecommendedFeeds {
+                    showingRecommendedFeeds = true
+                    didShowRecommendedFeeds = true
+                }
+            }
             .sheet(isPresented: $showingAddFeed) {
                 AddFeedView()
             }
@@ -69,6 +89,9 @@ struct FeedsListView: View {
             }
             .sheet(isPresented: $showingImportSubscriptions) {
                 ImportSubscriptionsView()
+            }
+            .sheet(isPresented: $showingRecommendedFeeds) {
+                RecommendedFeedsView()
             }
         }
     }
