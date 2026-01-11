@@ -152,6 +152,7 @@ struct FeedRowView: View {
 private struct RecommendedFeed: Identifiable, Hashable {
     enum Kind: String, Hashable {
         case rss = "RSS"
+        case podcast = "Podcast"
     }
 
     let id: String
@@ -178,6 +179,20 @@ private struct RecommendedFeed: Identifiable, Hashable {
 }
 
 private enum RecommendedFeedCatalog {
+    static let categoryOrder: [String: Int] = [
+        "中文": 0,
+        "Linux": 1,
+        "Programming": 2,
+        "DevOps": 3,
+        "AI": 4,
+        "Tech": 5,
+        "Community": 6,
+        "Design": 7,
+        "Security": 8,
+        "Science": 9,
+        "Podcast": 10,
+    ]
+
     static let items: [RecommendedFeed] = [
         RecommendedFeed(
             title: "少数派",
@@ -198,10 +213,118 @@ private enum RecommendedFeedCatalog {
             description: "创意工作者社区"
         ),
         RecommendedFeed(
+            title: "Linux Do",
+            url: "https://linux.do/latest.rss",
+            category: "Linux",
+            description: "中文 Linux 社区"
+        ),
+        RecommendedFeed(
+            title: "Linux.com",
+            url: "https://www.linux.com/feed/",
+            category: "Linux",
+            description: "Linux news"
+        ),
+        RecommendedFeed(
+            title: "It's FOSS",
+            url: "https://itsfoss.com/feed/",
+            category: "Linux",
+            description: "Linux tips & news"
+        ),
+        RecommendedFeed(
+            title: "OMG! Ubuntu",
+            url: "https://www.omgubuntu.co.uk/feed",
+            category: "Linux",
+            description: "Ubuntu news"
+        ),
+        RecommendedFeed(
+            title: "Fedora Magazine",
+            url: "https://fedoramagazine.org/feed/",
+            category: "Linux",
+            description: "Fedora community blog"
+        ),
+        RecommendedFeed(
+            title: "Arch Linux News",
+            url: "https://archlinux.org/feeds/news/",
+            category: "Linux",
+            description: "Arch announcements"
+        ),
+        RecommendedFeed(
+            title: "Kernel Releases",
+            url: "https://www.kernel.org/feeds/kdist.xml",
+            category: "Linux",
+            description: "Linux kernel releases"
+        ),
+        RecommendedFeed(
+            title: "GitHub Blog",
+            url: "https://github.blog/feed/",
+            category: "Programming",
+            description: "Engineering, open source, and GitHub updates"
+        ),
+        RecommendedFeed(
+            title: "Martin Fowler",
+            url: "https://martinfowler.com/feed.atom",
+            category: "Programming",
+            description: "Architecture, refactoring, and software design"
+        ),
+        RecommendedFeed(
+            title: "The Go Blog",
+            url: "https://go.dev/blog/feed.atom",
+            category: "Programming",
+            description: "Go official blog"
+        ),
+        RecommendedFeed(
+            title: "Rust Blog",
+            url: "https://blog.rust-lang.org/feed.xml",
+            category: "Programming",
+            description: "Rust language updates"
+        ),
+        RecommendedFeed(
+            title: "Swift.org",
+            url: "https://swift.org/atom.xml",
+            category: "Programming",
+            description: "Swift language updates"
+        ),
+        RecommendedFeed(
+            title: "Kubernetes Blog",
+            url: "https://kubernetes.io/feed.xml",
+            category: "DevOps",
+            description: "Kubernetes blog & announcements"
+        ),
+        RecommendedFeed(
+            title: "Docker Blog",
+            url: "https://www.docker.com/blog/feed/",
+            category: "DevOps",
+            description: "Docker news & engineering"
+        ),
+        RecommendedFeed(
+            title: "Cloudflare Blog",
+            url: "https://blog.cloudflare.com/rss/",
+            category: "DevOps",
+            description: "Networking, security, and performance"
+        ),
+        RecommendedFeed(
+            title: "OpenAI Blog",
+            url: "https://openai.com/blog/rss.xml",
+            category: "AI",
+            description: "OpenAI updates"
+        ),
+        RecommendedFeed(
+            title: "Google AI",
+            url: "https://blog.google/technology/ai/rss/",
+            category: "AI",
+            description: "Google AI news"
+        ),
+        RecommendedFeed(
             title: "Hacker News",
             url: "https://hnrss.org/frontpage",
             category: "Tech",
             description: "Tech & startups"
+        ),
+        RecommendedFeed(
+            title: "The Register",
+            url: "https://www.theregister.com/headlines.atom",
+            category: "Tech",
+            description: "IT industry news"
         ),
         RecommendedFeed(
             title: "The Verge",
@@ -214,6 +337,12 @@ private enum RecommendedFeedCatalog {
             url: "https://feeds.arstechnica.com/arstechnica/index",
             category: "Tech",
             description: "Technology & science"
+        ),
+        RecommendedFeed(
+            title: "Lobsters",
+            url: "https://lobste.rs/rss",
+            category: "Community",
+            description: "Tech community discussions"
         ),
         RecommendedFeed(
             title: "Smashing Magazine",
@@ -239,6 +368,48 @@ private enum RecommendedFeedCatalog {
             category: "Science",
             description: "NASA updates"
         ),
+        RecommendedFeed(
+            title: "The Changelog",
+            url: "https://changelog.com/podcast/feed",
+            category: "Podcast",
+            kind: .podcast,
+            description: "Software engineering podcast"
+        ),
+        RecommendedFeed(
+            title: "Go Time",
+            url: "https://changelog.com/gotime/feed",
+            category: "Podcast",
+            kind: .podcast,
+            description: "Go podcast"
+        ),
+        RecommendedFeed(
+            title: "JS Party",
+            url: "https://changelog.com/jsparty/feed",
+            category: "Podcast",
+            kind: .podcast,
+            description: "JavaScript podcast"
+        ),
+        RecommendedFeed(
+            title: "Syntax",
+            url: "https://feed.syntax.fm/rss",
+            category: "Podcast",
+            kind: .podcast,
+            description: "Web dev podcast"
+        ),
+        RecommendedFeed(
+            title: "Linux Unplugged",
+            url: "https://linuxunplugged.com/rss",
+            category: "Podcast",
+            kind: .podcast,
+            description: "Linux podcast"
+        ),
+        RecommendedFeed(
+            title: "Darknet Diaries",
+            url: "https://feeds.megaphone.fm/darknetdiaries",
+            category: "Podcast",
+            kind: .podcast,
+            description: "True stories from the dark side of the internet"
+        ),
     ]
 }
 
@@ -260,7 +431,12 @@ struct RecommendedFeedsView: View {
         let grouped = Dictionary(grouping: RecommendedFeedCatalog.items, by: \.category)
         return grouped
             .map { (key, value) in (category: key, items: value.sorted { $0.title < $1.title }) }
-            .sorted { $0.category < $1.category }
+            .sorted { lhs, rhs in
+                let lhsOrder = RecommendedFeedCatalog.categoryOrder[lhs.category] ?? Int.max
+                let rhsOrder = RecommendedFeedCatalog.categoryOrder[rhs.category] ?? Int.max
+                if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
+                return lhs.category < rhs.category
+            }
     }
 
     var body: some View {
