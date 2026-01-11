@@ -384,15 +384,15 @@ struct PlayerControlsOverlay: View {
                             get: { isScrubbing ? scrubValue : displayedCurrentTime },
                             set: { scrubValue = $0 }
                         ),
-                        in: 0...seekWindowDuration
-                    ) { editing in
-                        isScrubbing = editing
-                        if editing {
-                            scrubValue = displayedCurrentTime
-                        } else {
-                            onSeek(effectiveSeekStart + scrubValue)
+                        in: 0...seekWindowDuration,
+                        onEditingChanged: { editing in
+                            isScrubbing = editing
+                            if editing {
+                                scrubValue = displayedCurrentTime
+                            } else {
+                                onSeek(effectiveSeekStart + scrubValue)
+                            }
                         }
-                    }
                     )
                     .tint(.white)
                     .disabled(!isSeekable)
