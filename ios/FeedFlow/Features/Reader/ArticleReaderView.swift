@@ -327,7 +327,7 @@ struct HTMLWebView: UIViewRepresentable {
         let contentController = WKUserContentController()
         contentController.add(context.coordinator, name: "heightDidChange")
         contentController.addUserScript(
-            WKUserScript(source: heightReportingScript, injectionTime: .atEnd, forMainFrameOnly: true)
+            WKUserScript(source: heightReportingScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
         )
         configuration.userContentController = contentController
 
