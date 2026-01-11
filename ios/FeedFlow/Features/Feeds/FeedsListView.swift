@@ -18,11 +18,10 @@ struct FeedsListView: View {
                         "No Feeds",
                         systemImage: "newspaper",
                         description: Text("Add your first RSS feed to get started")
-                    ) {
-                        Button("Browse Popular Subscriptions") {
-                            showingRecommendedFeeds = true
-                            didShowRecommendedFeeds = true
-                        }
+                    )
+                    Button("Browse Popular Subscriptions") {
+                        showingRecommendedFeeds = true
+                        didShowRecommendedFeeds = true
                     }
                 } else {
                     ForEach(feeds) { feed in
