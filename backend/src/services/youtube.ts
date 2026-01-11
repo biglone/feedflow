@@ -15,6 +15,11 @@ export interface YouTubeChannel {
   customUrl?: string;
 }
 
+export interface YouTubeChannelSearchResult {
+  channels: YouTubeChannel[];
+  nextPageToken?: string;
+}
+
 export interface YouTubeVideo {
   id: string;
   title: string;
@@ -25,6 +30,11 @@ export interface YouTubeVideo {
   viewCount?: string;
   channelId: string;
   channelTitle: string;
+}
+
+export interface YouTubeChannelVideosResult {
+  videos: YouTubeVideo[];
+  nextPageToken?: string;
 }
 
 export interface YouTubeVideoMeta {
@@ -181,8 +191,9 @@ export async function resolveReplayVideoIdForUpcomingVideo(
 
 export async function searchChannels(
   query: string,
-  maxResults: number = 10
-): Promise<YouTubeChannel[]> {
+  maxResults: number = 10,
+  pageToken?: string
+): Promise<YouTubeChannelSearchResult> {
   if (!process.env.YOUTUBE_API_KEY) {
     throw new Error("YOUTUBE_API_KEY is not configured. Please add it to your .env file.");
   }
@@ -193,7 +204,10 @@ export async function searchChannels(
       q: query,
       type: ["channel"],
       maxResults,
+      pageToken,
     });
+
+    const nextPageToken = response.data.nextPageToken || undefined;
 
     const channelIds =
       response.data.items
@@ -201,7 +215,7 @@ export async function searchChannels(
         .filter(Boolean) as string[];
 
     if (!channelIds?.length) {
-      return [];
+      return { channels: [], nextPageToken };
     }
 
     // Get detailed channel info
@@ -210,7 +224,7 @@ export async function searchChannels(
       id: channelIds,
     });
 
-    return (
+    const channels =
       channelResponse.data.items?.map((channel) => ({
         id: channel.id!,
         title: channel.snippet?.title || "Unknown",
@@ -222,8 +236,9 @@ export async function searchChannels(
         subscriberCount: channel.statistics?.subscriberCount || "0",
         videoCount: channel.statistics?.videoCount || "0",
         customUrl: channel.snippet?.customUrl ?? undefined,
-      })) || []
-    );
+      })) || [];
+
+    return { channels, nextPageToken };
   } catch (error: any) {
     console.error("YouTube API search error:", error.message);
     if (error.code === 403) {
@@ -263,47 +278,100 @@ export async function getChannelInfo(
 
 export async function getChannelVideos(
   channelId: string,
-  maxResults: number = 20
-): Promise<YouTubeVideo[]> {
-  const response = await youtube.search.list({
-    part: ["snippet"],
-    channelId,
-    order: "date",
-    type: ["video"],
-    maxResults,
-  });
-
-  const videoIds =
-    response.data.items?.map((item) => item.id?.videoId).filter(Boolean) as
-      | string[]
-      | undefined;
-
-  if (!videoIds?.length) {
-    return [];
+  maxResults: number = 20,
+  pageToken?: string
+): Promise<YouTubeChannelVideosResult> {
+  const uploadsPlaylistId = await getUploadsPlaylistId(channelId);
+  if (!uploadsPlaylistId) {
+    return { videos: [], nextPageToken: undefined };
   }
 
-  // Get video details (duration, view count)
+  const playlistResponse = await youtube.playlistItems.list({
+    part: ["snippet", "contentDetails"],
+    playlistId: uploadsPlaylistId,
+    maxResults,
+    pageToken,
+  });
+
+  const nextPageToken = playlistResponse.data.nextPageToken || undefined;
+
+  const items = playlistResponse.data.items || [];
+  const videoIds = items
+    .map((item) => item.contentDetails?.videoId)
+    .filter((id): id is string => Boolean(id));
+
+  if (videoIds.length === 0) {
+    return { videos: [], nextPageToken };
+  }
+
   const videoResponse = await youtube.videos.list({
-    part: ["snippet", "contentDetails", "statistics"],
+    part: ["contentDetails", "statistics"],
     id: videoIds,
   });
 
-  return (
-    videoResponse.data.items?.map((video) => ({
-      id: video.id!,
-      title: video.snippet?.title || "Untitled",
-      description: video.snippet?.description || "",
+  const byId = new Map<string, youtube_v3.Schema$Video>();
+  for (const v of videoResponse.data.items || []) {
+    if (v.id) byId.set(v.id, v);
+  }
+
+  const videos: YouTubeVideo[] = [];
+  for (const item of items) {
+    const videoId = item.contentDetails?.videoId;
+    const snippet = item.snippet;
+    if (!videoId || !snippet?.title) continue;
+
+    if (snippet.title === "Private video" || snippet.title === "Deleted video") {
+      continue;
+    }
+
+    const details = byId.get(videoId);
+    videos.push({
+      id: videoId,
+      title: snippet.title || "Untitled",
+      description: snippet.description || "",
       thumbnailUrl:
-        video.snippet?.thumbnails?.medium?.url ||
-        video.snippet?.thumbnails?.default?.url ||
+        snippet.thumbnails?.high?.url ||
+        snippet.thumbnails?.medium?.url ||
+        snippet.thumbnails?.default?.url ||
         "",
-      publishedAt: video.snippet?.publishedAt || "",
-      duration: video.contentDetails?.duration || "",
-      viewCount: video.statistics?.viewCount || "0",
-      channelId: video.snippet?.channelId || "",
-      channelTitle: video.snippet?.channelTitle || "",
-    })) || []
-  );
+      publishedAt:
+        item.contentDetails?.videoPublishedAt || snippet.publishedAt || "",
+      duration: details?.contentDetails?.duration || "",
+      viewCount: details?.statistics?.viewCount || "0",
+      channelId,
+      channelTitle: snippet.channelTitle || "",
+    });
+  }
+
+  return { videos, nextPageToken };
+}
+
+const uploadsPlaylistCache = new Map<
+  string,
+  { playlistId: string | null; timestamp: number }
+>();
+const UPLOADS_PLAYLIST_TTL_MS = 24 * 60 * 60 * 1000;
+
+async function getUploadsPlaylistId(channelId: string): Promise<string | null> {
+  const cached = uploadsPlaylistCache.get(channelId);
+  if (cached && Date.now() - cached.timestamp < UPLOADS_PLAYLIST_TTL_MS) {
+    return cached.playlistId;
+  }
+
+  const response = await youtube.channels.list({
+    part: ["contentDetails"],
+    id: [channelId],
+  });
+
+  const playlistId =
+    response.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads || null;
+
+  uploadsPlaylistCache.set(channelId, {
+    playlistId,
+    timestamp: Date.now(),
+  });
+
+  return playlistId;
 }
 
 // Convert various YouTube URL formats to channel ID

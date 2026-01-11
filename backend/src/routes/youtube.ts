@@ -183,15 +183,20 @@ youtubeRouter.get("/subscriptions", async (c) => {
 // Search YouTube channels
 const searchSchema = z.object({
   q: z.string().min(1),
-  limit: z.string().optional().transform((v) => (v ? parseInt(v) : 10)),
+  limit: z.string().optional().transform((v) => {
+    const parsed = v ? parseInt(v, 10) : 10;
+    if (!Number.isFinite(parsed)) return 10;
+    return Math.min(Math.max(parsed, 1), 50);
+  }),
+  pageToken: z.string().optional(),
 });
 
 youtubeRouter.get("/search", zValidator("query", searchSchema), async (c) => {
-  const { q, limit } = c.req.valid("query");
+  const { q, limit, pageToken } = c.req.valid("query");
 
   try {
-    const channels = await searchChannels(q, limit);
-    return c.json({ channels });
+    const { channels, nextPageToken } = await searchChannels(q, limit, pageToken);
+    return c.json({ channels, nextPageToken });
   } catch (error: any) {
     console.error("YouTube search error:", error);
     const message = error.message || "Failed to search YouTube channels";
@@ -219,7 +224,12 @@ youtubeRouter.get("/channel/:id", async (c) => {
 
 // Get channel videos
 const videosSchema = z.object({
-  limit: z.string().optional().transform((v) => (v ? parseInt(v) : 20)),
+  limit: z.string().optional().transform((v) => {
+    const parsed = v ? parseInt(v, 10) : 20;
+    if (!Number.isFinite(parsed)) return 20;
+    return Math.min(Math.max(parsed, 1), 50);
+  }),
+  pageToken: z.string().optional(),
 });
 
 youtubeRouter.get(
@@ -227,10 +237,14 @@ youtubeRouter.get(
   zValidator("query", videosSchema),
   async (c) => {
     const channelId = c.req.param("id");
-    const { limit } = c.req.valid("query");
+    const { limit, pageToken } = c.req.valid("query");
 
     try {
-      const videos = await getChannelVideos(channelId, limit);
+      const { videos, nextPageToken } = await getChannelVideos(
+        channelId,
+        limit,
+        pageToken
+      );
 
       // Format duration for each video
       const formattedVideos = videos.map((video) => ({
@@ -240,7 +254,7 @@ youtubeRouter.get(
           : "0:00",
       }));
 
-      return c.json({ videos: formattedVideos });
+      return c.json({ videos: formattedVideos, nextPageToken });
     } catch (error) {
       console.error("Get channel videos error:", error);
       return c.json({ error: "Failed to get channel videos" }, 500);
