@@ -7,9 +7,12 @@ Type=simple
 WorkingDirectory=%h/workspace/feedflow-prod
 Environment=NODE_ENV=production
 EnvironmentFile=%h/.config/feedflow/deploy.env
+ExecStartPre=/usr/bin/env mkdir -p %h/.cache/feedflow
 ExecStart=/usr/bin/env node deploy/github-webhook-server.mjs
 Restart=on-failure
 RestartSec=2
+StandardOutput=append:%h/.cache/feedflow/deploy-webhook.log
+StandardError=append:%h/.cache/feedflow/deploy-webhook.log
 
 [Install]
 WantedBy=default.target

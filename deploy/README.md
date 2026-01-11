@@ -39,6 +39,11 @@ cp deploy/systemd/feedflow-deploy-webhook.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 ```
 
+日志文件（推荐用于复盘 / 排障）：
+
+- 后端：`~/.cache/feedflow/backend.log`
+- Webhook + 部署脚本输出：`~/.cache/feedflow/deploy-webhook.log`
+
 准备 webhook 环境文件：
 
 ```bash

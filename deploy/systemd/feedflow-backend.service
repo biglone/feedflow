@@ -7,9 +7,12 @@ Type=simple
 WorkingDirectory=%h/workspace/feedflow-prod/backend
 Environment=NODE_ENV=production
 EnvironmentFile=-%h/.config/feedflow/backend.env
+ExecStartPre=/usr/bin/env mkdir -p %h/.cache/feedflow
 ExecStart=/usr/bin/env bash -lc 'npm start'
 Restart=on-failure
 RestartSec=2
+StandardOutput=append:%h/.cache/feedflow/backend.log
+StandardError=append:%h/.cache/feedflow/backend.log
 
 [Install]
 WantedBy=default.target
