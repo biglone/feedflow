@@ -88,8 +88,18 @@ struct MiniPlayerView: View {
     }
 
     private var progressRatio: Double {
-        guard playerManager.duration > 0 else { return 0 }
-        return min(playerManager.currentTime / playerManager.duration, 1.0)
+        if playerManager.duration > 0 {
+            return min(playerManager.currentTime / playerManager.duration, 1.0)
+        }
+
+        guard playerManager.isSeekable else { return 0 }
+        let start = playerManager.seekableStartTime
+        let end = playerManager.seekableEndTime
+        guard end > start else { return 0 }
+
+        let windowDuration = end - start
+        let relativeTime = playerManager.currentTime - start
+        return min(max(relativeTime / windowDuration, 0), 1)
     }
 }
 

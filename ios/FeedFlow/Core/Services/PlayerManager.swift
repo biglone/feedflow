@@ -111,7 +111,8 @@ class PlayerManager: ObservableObject {
                 return .commandFailed
             }
             Task { @MainActor in
-                self?.seek(to: event.positionTime)
+                guard let self else { return }
+                self.seek(to: self.nowPlayingSeekOffset + event.positionTime)
             }
             return .success
         }
@@ -236,13 +237,18 @@ class PlayerManager: ObservableObject {
 
     func seekAndPlay(to time: TimeInterval) {
         guard let player = player else { return }
-        guard let clamped = clampTimeToSeekableRange(time) else { return }
+        guard let clamped = clampTimeToSeekableRange(time) else {
+            play()
+            return
+        }
         activateAudioSession()
         isPlaying = false
+        player.currentItem?.cancelPendingSeeks()
+        let tolerance = CMTime(seconds: 1, preferredTimescale: 600)
         player.seek(
             to: CMTime(seconds: clamped, preferredTimescale: 600),
-            toleranceBefore: CMTime(value: 1, timescale: 600),
-            toleranceAfter: CMTime(value: 1, timescale: 600)
+            toleranceBefore: tolerance,
+            toleranceAfter: tolerance
         ) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
@@ -297,9 +303,16 @@ class PlayerManager: ObservableObject {
         guard let player else { return }
         guard let clamped = clampTimeToSeekableRange(time) else { return }
         let cmTime = CMTime(seconds: clamped, preferredTimescale: 600)
-        player.seek(to: cmTime, toleranceBefore: .zero, toleranceAfter: .zero)
-        currentTime = clamped
-        updateNowPlayingProgress()
+        player.currentItem?.cancelPendingSeeks()
+        let tolerance = CMTime(seconds: 1, preferredTimescale: 600)
+        player.seek(to: cmTime, toleranceBefore: tolerance, toleranceAfter: tolerance) { [weak self] finished in
+            guard finished else { return }
+            Task { @MainActor in
+                guard let self else { return }
+                self.currentTime = clamped
+                self.updateNowPlayingProgress()
+            }
+        }
     }
 
     func skipForward(seconds: TimeInterval) {
@@ -315,11 +328,11 @@ class PlayerManager: ObservableObject {
     private func updateNowPlayingInfo() {
         guard let info = nowPlayingInfo else { return }
 
-        let effectiveDuration = duration > 0 ? duration : info.duration
+        let effectiveDuration = nowPlayingDuration > 0 ? nowPlayingDuration : info.duration
         var nowPlayingDict: [String: Any] = [
             MPMediaItemPropertyTitle: info.title,
             MPMediaItemPropertyPlaybackDuration: effectiveDuration,
-            MPNowPlayingInfoPropertyElapsedPlaybackTime: currentTime,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: nowPlayingElapsedTime,
             MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0,
         ]
 
@@ -348,9 +361,31 @@ class PlayerManager: ObservableObject {
 
     private func updateNowPlayingProgress() {
         var nowPlayingDict = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
-        nowPlayingDict[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
+        nowPlayingDict[MPMediaItemPropertyPlaybackDuration] = nowPlayingDuration
+        nowPlayingDict[MPNowPlayingInfoPropertyElapsedPlaybackTime] = nowPlayingElapsedTime
         nowPlayingDict[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1.0 : 0.0
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingDict
+    }
+
+    private var nowPlayingSeekOffset: TimeInterval {
+        guard isSeekable else { return 0 }
+        guard seekableEndTime > seekableStartTime else { return 0 }
+        return seekableStartTime
+    }
+
+    private var nowPlayingDuration: TimeInterval {
+        if isSeekable, seekableEndTime > seekableStartTime {
+            return seekableEndTime - seekableStartTime
+        }
+        return duration
+    }
+
+    private var nowPlayingElapsedTime: TimeInterval {
+        let elapsed = currentTime - nowPlayingSeekOffset
+        if nowPlayingDuration > 0 {
+            return min(max(elapsed, 0), nowPlayingDuration)
+        }
+        return max(elapsed, 0)
     }
 
     // MARK: - AVPlayer Access (for VideoPlayerView)
@@ -400,14 +435,24 @@ class PlayerManager: ObservableObject {
             return
         }
 
+        let itemCurrentTimeSeconds = item.currentTime().seconds
+        let fallbackEnd =
+            itemCurrentTimeSeconds.isFinite && !itemCurrentTimeSeconds.isNaN
+            ? itemCurrentTimeSeconds
+            : currentTime
+
         var start = Double.greatestFiniteMagnitude
         var end = 0.0
         for range in ranges {
             let rangeStart = range.start.seconds
-            let rangeEnd = range.start.seconds + range.duration.seconds
             if rangeStart.isFinite && !rangeStart.isNaN {
-                start = min(start, rangeStart)
+                start = min(start, max(rangeStart, 0))
             }
+
+            let rangeEndSeconds = CMTimeRangeGetEnd(range).seconds
+            let rangeEnd = rangeEndSeconds.isFinite && !rangeEndSeconds.isNaN
+                ? rangeEndSeconds
+                : fallbackEnd
             if rangeEnd.isFinite && !rangeEnd.isNaN {
                 end = max(end, rangeEnd)
             }
@@ -421,15 +466,16 @@ class PlayerManager: ObservableObject {
         }
 
         seekableStartTime = start
-        seekableEndTime = end
+        seekableEndTime = max(end, start)
         isSeekable = (end - start) > 1
     }
 
     private func clampTimeToSeekableRange(_ time: TimeInterval) -> TimeInterval? {
         if isSeekable {
-            let start = seekableStartTime
-            let end = seekableEndTime > start ? seekableEndTime : start
-            return min(max(time, start), end)
+            let start = max(0, seekableStartTime)
+            let end = max(start, seekableEndTime)
+            let safeEnd = end > (start + 0.25) ? (end - 0.25) : end
+            return min(max(time, start), safeEnd)
         }
 
         if duration > 0 {

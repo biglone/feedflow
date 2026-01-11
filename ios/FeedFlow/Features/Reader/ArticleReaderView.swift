@@ -194,10 +194,11 @@ struct ArticleReaderView: View {
 struct HTMLContentView: View {
     let htmlContent: String
     let colorScheme: ColorScheme
+    @State private var contentHeight: CGFloat = 300
 
     var body: some View {
-        HTMLWebView(htmlContent: styledHTML, colorScheme: colorScheme)
-            .frame(minHeight: 300)
+        HTMLWebView(htmlContent: styledHTML, colorScheme: colorScheme, contentHeight: $contentHeight)
+            .frame(height: max(contentHeight, 300))
     }
 
     private var styledHTML: String {
@@ -317,10 +318,18 @@ struct HTMLContentView: View {
 struct HTMLWebView: UIViewRepresentable {
     let htmlContent: String
     let colorScheme: ColorScheme
+    @Binding var contentHeight: CGFloat
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
+
+        let contentController = WKUserContentController()
+        contentController.add(context.coordinator, name: "heightDidChange")
+        contentController.addUserScript(
+            WKUserScript(source: heightReportingScript, injectionTime: .atEnd, forMainFrameOnly: true)
+        )
+        configuration.userContentController = contentController
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.isOpaque = false
@@ -332,14 +341,106 @@ struct HTMLWebView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
+        guard context.coordinator.lastLoadedHTML != htmlContent else { return }
+        context.coordinator.lastLoadedHTML = htmlContent
         webView.loadHTMLString(htmlContent, baseURL: nil)
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(contentHeight: $contentHeight)
     }
 
-    class Coordinator: NSObject, WKNavigationDelegate {
+    static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {
+        uiView.navigationDelegate = nil
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "heightDidChange")
+    }
+
+    private var heightReportingScript: String {
+        """
+        (function() {
+          function documentHeight() {
+            var body = document.body;
+            var html = document.documentElement;
+            return Math.max(
+              body ? body.scrollHeight : 0,
+              html ? html.scrollHeight : 0,
+              body ? body.offsetHeight : 0,
+              html ? html.offsetHeight : 0,
+              body ? body.clientHeight : 0,
+              html ? html.clientHeight : 0
+            );
+          }
+
+          var lastHeight = 0;
+          var scheduled = false;
+
+          function postHeight() {
+            var height = documentHeight();
+            if (!height || height === lastHeight) return;
+            lastHeight = height;
+            try {
+              window.webkit.messageHandlers.heightDidChange.postMessage(height);
+            } catch (_) {}
+          }
+
+          function schedule() {
+            if (scheduled) return;
+            scheduled = true;
+            requestAnimationFrame(function() {
+              scheduled = false;
+              postHeight();
+            });
+          }
+
+          document.addEventListener('DOMContentLoaded', schedule);
+          window.addEventListener('load', schedule);
+          window.addEventListener('resize', schedule);
+
+          if (window.MutationObserver) {
+            new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
+          }
+
+          if (window.ResizeObserver && document.body) {
+            new ResizeObserver(schedule).observe(document.body);
+          }
+
+          setTimeout(schedule, 0);
+          setTimeout(schedule, 250);
+          setTimeout(schedule, 1000);
+        })();
+        """
+    }
+
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+        private var contentHeight: Binding<CGFloat>
+        fileprivate var lastLoadedHTML: String?
+
+        init(contentHeight: Binding<CGFloat>) {
+            self.contentHeight = contentHeight
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == "heightDidChange" else { return }
+
+            let heightValue: Double?
+            if let number = message.body as? NSNumber {
+                heightValue = number.doubleValue
+            } else if let string = message.body as? String {
+                heightValue = Double(string)
+            } else {
+                heightValue = nil
+            }
+
+            guard let heightValue, heightValue.isFinite, !heightValue.isNaN, heightValue > 0 else { return }
+            let height = CGFloat(heightValue)
+
+            DispatchQueue.main.async {
+                if abs(self.contentHeight.wrappedValue - height) > 1 {
+                    self.contentHeight.wrappedValue = height
+                }
+            }
+        }
+
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             if navigationAction.navigationType == .linkActivated {
                 if let url = navigationAction.request.url {
@@ -352,10 +453,26 @@ struct HTMLWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            webView.evaluateJavaScript("document.body.scrollHeight") { result, error in
-                if let height = result as? CGFloat {
-                    webView.frame.size.height = height
-                    webView.invalidateIntrinsicContentSize()
+            webView.evaluateJavaScript("Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)") { [weak self] result, _ in
+                guard let self else { return }
+                let heightValue: Double?
+                if let number = result as? NSNumber {
+                    heightValue = number.doubleValue
+                } else if let double = result as? Double {
+                    heightValue = double
+                } else if let string = result as? String {
+                    heightValue = Double(string)
+                } else {
+                    heightValue = nil
+                }
+
+                guard let heightValue, heightValue.isFinite, !heightValue.isNaN, heightValue > 0 else { return }
+                let height = CGFloat(heightValue)
+
+                DispatchQueue.main.async {
+                    if abs(self.contentHeight.wrappedValue - height) > 1 {
+                        self.contentHeight.wrappedValue = height
+                    }
                 }
             }
         }
