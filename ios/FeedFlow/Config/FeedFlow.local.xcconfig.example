@@ -1,0 +1,7 @@
+// Copy this file to `FeedFlow.local.xcconfig` and fill in your own values.
+// Example:
+// FEEDFLOW_BUNDLE_ID = com.yourname.feedflow
+// FEEDFLOW_DEVELOPMENT_TEAM = ABCDE12345
+
+FEEDFLOW_BUNDLE_ID =
+FEEDFLOW_DEVELOPMENT_TEAM =

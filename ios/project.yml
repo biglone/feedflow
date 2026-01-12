@@ -22,6 +22,9 @@ targets:
   FeedFlow:
     type: application
     platform: iOS
+    configFiles:
+      Debug: FeedFlow/Config/FeedFlow.xcconfig
+      Release: FeedFlow/Config/FeedFlow.xcconfig
     sources:
       - path: FeedFlow
         excludes:
@@ -33,7 +36,6 @@ targets:
       - package: FeedKit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.feedflow.app
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: NO
@@ -41,7 +43,6 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UIBackgroundModes: "audio"
         CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: ""
     info:
       path: FeedFlow/Resources/Info.plist
       properties:

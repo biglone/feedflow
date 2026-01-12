@@ -36,15 +36,16 @@
 		F3945DFAB1CFC716F0F1D3A4 /* Folder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE75F0FE93D8D208F47610D6 /* Folder.swift */; };
 /* End PBXBuildFile section */
 
-	/* Begin PBXFileReference section */
-			02A15B67138970399BE186E9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-			09693953491A99BD25B03495 /* AddFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFeedView.swift; sourceTree = "<group>"; };
-			0E5E492BEB780F50312157F7 /* FeedsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedsListView.swift; sourceTree = "<group>"; };
-			6D2C1B0A9F8E7D6C5B4A3928 /* AudioPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerView.swift; sourceTree = "<group>"; };
-			13D013577A5E036CE7129833 /* VideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerView.swift; sourceTree = "<group>"; };
-			236BEF9CFA8D801EC699F24D /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
-			2AA4215C7B5FE34E97BD874F /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
-			2CA7CEB944796E2713C1324D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		/* Begin PBXFileReference section */
+				02A15B67138970399BE186E9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+				09693953491A99BD25B03495 /* AddFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFeedView.swift; sourceTree = "<group>"; };
+				0E5E492BEB780F50312157F7 /* FeedsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedsListView.swift; sourceTree = "<group>"; };
+				6D2C1B0A9F8E7D6C5B4A3928 /* AudioPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerView.swift; sourceTree = "<group>"; };
+				A7D6C5B4E3F2019384756A1B /* FeedFlow.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = FeedFlow/Config/FeedFlow.xcconfig; sourceTree = SOURCE_ROOT; };
+				13D013577A5E036CE7129833 /* VideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerView.swift; sourceTree = "<group>"; };
+				236BEF9CFA8D801EC699F24D /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+				2AA4215C7B5FE34E97BD874F /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+				2CA7CEB944796E2713C1324D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3212D3BCFA76890B490F93AF /* ArticlesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticlesListView.swift; sourceTree = "<group>"; };
 		432D01CD675844B2714E7F7B /* Feed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feed.swift; sourceTree = "<group>"; };
 		47857FFBE48F3D5F35084887 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -364,13 +365,14 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		470CE0776DD240F4C9D0EC29 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = FeedFlow/Resources/FeedFlow.entitlements;
-					CODE_SIGN_IDENTITY = "Apple Development";
+			470CE0776DD240F4C9D0EC29 /* Release */ = {
+				isa = XCBuildConfiguration;
+				baseConfigurationReference = A7D6C5B4E3F2019384756A1B /* FeedFlow.xcconfig */;
+				buildSettings = {
+					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+					ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+					CODE_SIGN_ENTITLEMENTS = FeedFlow/Resources/FeedFlow.entitlements;
+						CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				INFOPLIST_FILE = FeedFlow/Resources/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -379,16 +381,15 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.feedflow.app;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+					LD_RUNPATH_SEARCH_PATHS = (
+						"$(inherited)",
+						"@executable_path/Frameworks",
+					);
+					SDKROOT = iphoneos;
+					TARGETED_DEVICE_FAMILY = "1,2";
+				};
+				name = Release;
 			};
-			name = Release;
-		};
 		6D9E90F9BD10E2BA4E307496 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -451,13 +452,14 @@
 			};
 			name = Release;
 		};
-		D9249AFC4858A9F472AC5138 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = FeedFlow/Resources/FeedFlow.entitlements;
-					CODE_SIGN_IDENTITY = "Apple Development";
+			D9249AFC4858A9F472AC5138 /* Debug */ = {
+				isa = XCBuildConfiguration;
+				baseConfigurationReference = A7D6C5B4E3F2019384756A1B /* FeedFlow.xcconfig */;
+				buildSettings = {
+					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+					ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+					CODE_SIGN_ENTITLEMENTS = FeedFlow/Resources/FeedFlow.entitlements;
+						CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				INFOPLIST_FILE = FeedFlow/Resources/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -466,16 +468,15 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.feedflow.app;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+					LD_RUNPATH_SEARCH_PATHS = (
+						"$(inherited)",
+						"@executable_path/Frameworks",
+					);
+					SDKROOT = iphoneos;
+					TARGETED_DEVICE_FAMILY = "1,2";
+				};
+				name = Debug;
 			};
-			name = Debug;
-		};
 		E956562917F187455BB4E577 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {

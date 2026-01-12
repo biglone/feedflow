@@ -29,6 +29,7 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 Pods/
+ios/FeedFlow/Config/*.local.xcconfig
 
 # Xcode
 *.pbxuser
