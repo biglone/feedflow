@@ -158,7 +158,7 @@ struct TimelineView: View {
 
     private func refreshAllFeeds() async {
         let feedManager = FeedManager(modelContext: modelContext)
-        await feedManager.refreshAllFeeds()
+        await feedManager.refreshAllFeeds(kind: typeFilter.kind)
     }
 }
 

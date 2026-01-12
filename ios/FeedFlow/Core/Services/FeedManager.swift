@@ -233,7 +233,7 @@ class FeedManager: ObservableObject {
         try modelContext.save()
     }
 
-    func refreshAllFeeds() async {
+    func refreshAllFeeds(kind: FeedKind? = nil) async {
         isRefreshing = true
         defer { isRefreshing = false }
 
@@ -241,6 +241,9 @@ class FeedManager: ObservableObject {
         guard let feeds = try? modelContext.fetch(descriptor) else { return }
 
         for feed in feeds {
+            if let kind, feed.resolvedKind != kind {
+                continue
+            }
             do {
                 try await refreshFeed(feed)
             } catch {
