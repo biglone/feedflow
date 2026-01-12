@@ -295,6 +295,34 @@ private enum RecommendedFeedCatalog {
                 description: "数码与科技"
             ),
             RecommendedFeed(
+                title: "老师好我叫何同学",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCP5Kd0smdWe9H_bDH-73c6Q",
+                category: "YouTube 中文",
+                kind: .youtube,
+                description: "创意视频与科技"
+            ),
+            RecommendedFeed(
+                title: "科技美学",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCAC204niCVvtDRDFYSiK7Cg",
+                category: "YouTube 中文",
+                kind: .youtube,
+                description: "数码评测与科技资讯"
+            ),
+            RecommendedFeed(
+                title: "ZEALER China",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC_Ks6fcoGgv4LotTZszYs-g",
+                category: "YouTube 中文",
+                kind: .youtube,
+                description: "科技评测与数码生活"
+            ),
+            RecommendedFeed(
+                title: "罗永浩的十字路口",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC33VP_gIBzCVcEvaGKBocZA",
+                category: "YouTube 中文",
+                kind: .youtube,
+                description: "访谈与观点"
+            ),
+            RecommendedFeed(
                 title: "Veritasium",
                 url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHnyfMqiRRG1u-2MsSQLbXA",
                 category: "YouTube Global",
@@ -391,6 +419,48 @@ private enum RecommendedFeedCatalog {
                 category: "YouTube Global",
                 kind: .youtube,
                 description: "Tech reviews"
+            ),
+            RecommendedFeed(
+                title: "Tom Scott",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCBa659QWEk1AI4Tg--mrJ2A",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Tech & science stories"
+            ),
+            RecommendedFeed(
+                title: "Mark Rober",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCY1kMZp36IQSyNx_9h4mpCg",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Engineering builds"
+            ),
+            RecommendedFeed(
+                title: "Stuff Made Here",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCj1VqrHhDte54oLgPG4xpuQ",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Engineering & making"
+            ),
+            RecommendedFeed(
+                title: "Numberphile",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCoxcjq-8xIDTYp3uz647V5A",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Math videos"
+            ),
+            RecommendedFeed(
+                title: "TechAltar",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCtZO3K2p8mqFwiKWb9k7fXA",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Technology analysis"
+            ),
+            RecommendedFeed(
+                title: "Lex Fridman",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCSHZKyawb77ixDdsGog4iWA",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Long-form AI & tech interviews"
             ),
 	        RecommendedFeed(
 	            title: "Linux Do",
@@ -912,6 +982,69 @@ private enum RecommendedFeedCatalog {
 	            kind: .podcast,
 	            description: "Swift development interviews"
 	        ),
+            RecommendedFeed(
+                title: "Upgrade",
+                url: "https://www.relay.fm/upgrade/feed",
+                category: "Podcast",
+                kind: .podcast,
+                description: "Tech and culture"
+            ),
+            RecommendedFeed(
+                title: "Connected",
+                url: "https://www.relay.fm/connected/feed",
+                category: "Podcast",
+                kind: .podcast,
+                description: "Apple & tech"
+            ),
+            RecommendedFeed(
+                title: "The Daily",
+                url: "https://feeds.simplecast.com/54nAGcIl",
+                category: "Podcast",
+                kind: .podcast,
+                description: "News from The New York Times"
+            ),
+            RecommendedFeed(
+                title: "Planet Money",
+                url: "https://feeds.npr.org/510289/podcast.xml",
+                category: "Podcast",
+                kind: .podcast,
+                description: "Economics stories"
+            ),
+            RecommendedFeed(
+                title: "How I Built This",
+                url: "https://feeds.npr.org/510313/podcast.xml",
+                category: "Podcast",
+                kind: .podcast,
+                description: "Founders & company stories"
+            ),
+            RecommendedFeed(
+                title: "99% Invisible",
+                url: "https://feeds.99percentinvisible.org/99percentinvisible",
+                category: "Podcast",
+                kind: .podcast,
+                description: "Design & architecture stories"
+            ),
+            RecommendedFeed(
+                title: "Data Skeptic",
+                url: "https://dataskeptic.libsyn.com/rss",
+                category: "Podcast",
+                kind: .podcast,
+                description: "Data science & AI"
+            ),
+            RecommendedFeed(
+                title: "Anyway.FM",
+                url: "https://anyway.fm/rss.xml",
+                category: "Podcast",
+                kind: .podcast,
+                description: "设计与生活（中文）"
+            ),
+            RecommendedFeed(
+                title: "一天世界",
+                url: "https://ipn.li/yitianshijie/feed",
+                category: "Podcast",
+                kind: .podcast,
+                description: "科技与人文（中文）"
+            ),
 	    ]
 	}
 

@@ -88,8 +88,13 @@ actor RSSService {
             let title = item.title ?? "Untitled"
 
             let enclosureURL = item.enclosure?.attributes?.url
-            let audioURL = FeedKind.isAudioEnclosureURL(enclosureURL) ? enclosureURL : nil
-            if FeedKind.isAudioEnclosureURL(enclosureURL) {
+            let enclosureType = item.enclosure?.attributes?.type
+            let isAudioEnclosure =
+                enclosureURL != nil
+                && (FeedKind.isAudioEnclosureURL(enclosureURL) || FeedKind.isAudioMIMEType(enclosureType))
+
+            let audioURL = isAudioEnclosure ? enclosureURL : nil
+            if audioURL != nil {
                 containsAudioEnclosure = true
             }
 
@@ -101,7 +106,7 @@ actor RSSService {
                 url: item.link,
                 author: item.author ?? item.dublinCore?.dcCreator,
                 imageURL: item.media?.mediaThumbnails?.first?.attributes?.url
-                    ?? (FeedKind.isImageURL(enclosureURL) ? enclosureURL : nil),
+                    ?? ((FeedKind.isImageURL(enclosureURL) || FeedKind.isImageMIMEType(enclosureType)) ? enclosureURL : nil),
                 audioURL: audioURL,
                 publishedAt: item.pubDate
             )

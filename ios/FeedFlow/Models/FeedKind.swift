@@ -47,10 +47,19 @@ enum FeedKind: String, CaseIterable, Identifiable, Hashable {
         return ["mp3", "m4a", "aac", "ogg", "opus", "wav", "flac"].contains(ext)
     }
 
+    static func isAudioMIMEType(_ value: String?) -> Bool {
+        let type = value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        return type.hasPrefix("audio/")
+    }
+
     static func isImageURL(_ urlString: String?) -> Bool {
         guard let urlString, let url = URL(string: urlString) else { return false }
         let ext = url.pathExtension.lowercased()
         return ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "avif", "bmp", "tiff"].contains(ext)
     }
-}
 
+    static func isImageMIMEType(_ value: String?) -> Bool {
+        let type = value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        return type.hasPrefix("image/")
+    }
+}
