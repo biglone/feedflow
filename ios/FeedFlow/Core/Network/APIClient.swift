@@ -58,6 +58,18 @@ actor APIClient {
         #if DEBUG
         UserDefaults.standard.register(defaults: ["useLocalAPI": false])
         #endif
+
+        let streamToken =
+            (Bundle.main.object(forInfoDictionaryKey: "FeedFlowStreamProxyAccessToken") as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !streamToken.isEmpty {
+            let existing = (UserDefaults.standard.string(forKey: "streamProxyAccessToken") ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if existing.isEmpty {
+                UserDefaults.standard.set(streamToken, forKey: "streamProxyAccessToken")
+            }
+        }
+
         self.decoder = JSONDecoder()
         self.decoder.dateDecodingStrategy = .iso8601
         self.encoder = JSONEncoder()
