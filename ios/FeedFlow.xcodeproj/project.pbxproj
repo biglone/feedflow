@@ -41,7 +41,8 @@
 				09693953491A99BD25B03495 /* AddFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFeedView.swift; sourceTree = "<group>"; };
 				0E5E492BEB780F50312157F7 /* FeedsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedsListView.swift; sourceTree = "<group>"; };
 				6D2C1B0A9F8E7D6C5B4A3928 /* AudioPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerView.swift; sourceTree = "<group>"; };
-				A7D6C5B4E3F2019384756A1B /* FeedFlow.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = FeedFlow/Config/FeedFlow.xcconfig; sourceTree = SOURCE_ROOT; };
+				A7D6C5B4E3F2019384756A1B /* FeedFlow.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = FeedFlow.xcconfig; sourceTree = "<group>"; };
+				C0A1C0A1C0A1C0A1C0A1C0A2 /* FeedFlow.local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = FeedFlow.local.xcconfig.example; sourceTree = "<group>"; };
 				13D013577A5E036CE7129833 /* VideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerView.swift; sourceTree = "<group>"; };
 				236BEF9CFA8D801EC699F24D /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 				2AA4215C7B5FE34E97BD874F /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -91,21 +92,30 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		18DCFCAAC0E345793F91DA22 /* Feeds */ = {
-			isa = PBXGroup;
-			children = (
-				09693953491A99BD25B03495 /* AddFeedView.swift */,
-				0E5E492BEB780F50312157F7 /* FeedsListView.swift */,
-			);
-			path = Feeds;
-			sourceTree = "<group>";
-		};
-		287AF6D5097C8151025E2F4D /* Storage */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Storage;
-			sourceTree = "<group>";
+			18DCFCAAC0E345793F91DA22 /* Feeds */ = {
+				isa = PBXGroup;
+				children = (
+					09693953491A99BD25B03495 /* AddFeedView.swift */,
+					0E5E492BEB780F50312157F7 /* FeedsListView.swift */,
+				);
+				path = Feeds;
+				sourceTree = "<group>";
+			};
+			C0A1C0A1C0A1C0A1C0A1C0A1 /* Config */ = {
+				isa = PBXGroup;
+				children = (
+					A7D6C5B4E3F2019384756A1B /* FeedFlow.xcconfig */,
+					C0A1C0A1C0A1C0A1C0A1C0A2 /* FeedFlow.local.xcconfig.example */,
+				);
+				path = Config;
+				sourceTree = "<group>";
+			};
+			287AF6D5097C8151025E2F4D /* Storage */ = {
+				isa = PBXGroup;
+				children = (
+				);
+				path = Storage;
+				sourceTree = "<group>";
 		};
 		2F2DE197DBB77F3D06EEB98A = {
 			isa = PBXGroup;
@@ -141,16 +151,17 @@
 			path = Reader;
 			sourceTree = "<group>";
 		};
-		5E3992E1A85A990D4E5B1ED3 /* FeedFlow */ = {
-			isa = PBXGroup;
-			children = (
-				5C6305F3C86D4F1BB5237D66 /* Assets.xcassets */,
-				AF543AB60FB3153EF0093415 /* App */,
-				E7382AB6A41CE315EA939DC7 /* Components */,
-				D3556271243E5FF519F5C335 /* Core */,
-				F19E9BFFB0A76F765E9E747A /* Features */,
-				6A742337E08A6EBDAFD94941 /* Models */,
-				1885FF00C6669ED6BD07887C /* Resources */,
+			5E3992E1A85A990D4E5B1ED3 /* FeedFlow */ = {
+				isa = PBXGroup;
+				children = (
+					5C6305F3C86D4F1BB5237D66 /* Assets.xcassets */,
+					AF543AB60FB3153EF0093415 /* App */,
+					C0A1C0A1C0A1C0A1C0A1C0A1 /* Config */,
+					E7382AB6A41CE315EA939DC7 /* Components */,
+					D3556271243E5FF519F5C335 /* Core */,
+					F19E9BFFB0A76F765E9E747A /* Features */,
+					6A742337E08A6EBDAFD94941 /* Models */,
+					1885FF00C6669ED6BD07887C /* Resources */,
 			);
 			path = FeedFlow;
 			sourceTree = "<group>";

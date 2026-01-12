@@ -2,6 +2,10 @@
 // Example:
 // FEEDFLOW_BUNDLE_ID = com.yourname.feedflow
 // FEEDFLOW_DEVELOPMENT_TEAM = ABCDE12345
+//
+// You can also override the underlying Xcode settings directly:
+// PRODUCT_BUNDLE_IDENTIFIER = com.yourname.feedflow
+// DEVELOPMENT_TEAM = ABCDE12345
 
 FEEDFLOW_BUNDLE_ID =
 FEEDFLOW_DEVELOPMENT_TEAM =
