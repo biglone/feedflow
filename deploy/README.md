@@ -23,6 +23,17 @@
 
 - `~/workspace/feedflow-prod/backend/.env`（参考 `backend/.env.example`）
 
+## 2.5) 初始化数据库（必须）
+
+首次部署或更新数据表后，需要执行一次迁移：
+
+```bash
+cd ~/workspace/feedflow-prod/backend
+npm run db:migrate
+```
+
+本仓库的 `deploy/deploy-feedflow.sh` 默认会在每次部署后执行迁移（可用 `FEEDFLOW_RUN_DB_MIGRATE=0` 关闭）。
+
 Webhook + 部署脚本使用 systemd 环境文件（不要提交到 git）：
 
 - `~/.config/feedflow/deploy.env`（从 `deploy/systemd/deploy.env.example` 复制）

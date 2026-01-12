@@ -115,6 +115,11 @@ fi
 echo "[deploy] npm run build (backend)"
 (cd "$REPO_DIR/$BACKEND_DIR" && NPM_CONFIG_PRODUCTION=false npm run build)
 
+if [[ "${FEEDFLOW_RUN_DB_MIGRATE:-1}" == "1" ]]; then
+  echo "[deploy] npm run db:migrate (backend)"
+  (cd "$REPO_DIR/$BACKEND_DIR" && NPM_CONFIG_PRODUCTION=false npm run db:migrate)
+fi
+
 systemctl --user restart "$BACKEND_SERVICE"
 
 echo "[deploy] done: $(date -Is)"

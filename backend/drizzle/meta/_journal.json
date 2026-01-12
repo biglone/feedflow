@@ -1,0 +1,13 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1768194920231,
+      "tag": "0000_wet_princess_powerful",
+      "breakpoints": true
+    }
+  ]
+}

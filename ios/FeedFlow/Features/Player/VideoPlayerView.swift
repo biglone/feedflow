@@ -256,9 +256,6 @@ struct VideoPlayerView: View {
 
         let device = "\(UIDevice.current.model) \(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
 
-        let streamProxyToken = UserDefaults.standard.string(forKey: "streamProxyAccessToken") ?? ""
-        let tokenStatus = streamProxyToken.isEmpty ? "missing" : "set(len:\(streamProxyToken.count))"
-
         let mode = playerManager.playbackMode == .audio ? "audio" : "video"
         let streamType = mode
 
@@ -272,7 +269,6 @@ struct VideoPlayerView: View {
         device=\(device)
         baseURL=\(baseURL)
         streamEndpoint=\(streamEndpoint)
-        streamToken=\(tokenStatus)
         videoId=\(videoId)
         mode=\(mode)
         title=\(title)

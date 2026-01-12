@@ -3,7 +3,6 @@
 
 FEEDFLOW_BUNDLE_ID = com.feedflow.app
 FEEDFLOW_DEVELOPMENT_TEAM =
-FEEDFLOW_STREAM_PROXY_ACCESS_TOKEN =
 
 #include? "FeedFlow.local.xcconfig"
 

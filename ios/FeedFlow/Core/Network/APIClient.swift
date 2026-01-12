@@ -59,17 +59,6 @@ actor APIClient {
         UserDefaults.standard.register(defaults: ["useLocalAPI": false])
         #endif
 
-        let streamToken =
-            (Bundle.main.object(forInfoDictionaryKey: "FeedFlowStreamProxyAccessToken") as? String)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !streamToken.isEmpty {
-            let existing = (UserDefaults.standard.string(forKey: "streamProxyAccessToken") ?? "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            if existing.isEmpty {
-                UserDefaults.standard.set(streamToken, forKey: "streamProxyAccessToken")
-            }
-        }
-
         self.decoder = JSONDecoder()
         self.decoder.dateDecodingStrategy = .iso8601
         self.encoder = JSONEncoder()
@@ -486,24 +475,17 @@ actor APIClient {
     }
 
     func getYouTubeStreamUrls(videoId: String, type: String = "both") async throws -> YouTubeStreamResponse {
-        var extraHeaders: [String: String] = [:]
-        let streamProxyToken = UserDefaults.standard.string(forKey: "streamProxyAccessToken") ?? ""
-        if !streamProxyToken.isEmpty {
-            extraHeaders["X-FeedFlow-Stream-Token"] = streamProxyToken
-        }
-
         #if DEBUG
         if UserDefaults.standard.bool(forKey: "enableNetworkDebugLogs") {
             AppLog.player.debug(
-                "YouTube stream request videoId=\(videoId, privacy: .public) type=\(type, privacy: .public) token=\(!streamProxyToken.isEmpty, privacy: .public)"
+                "YouTube stream request videoId=\(videoId, privacy: .public) type=\(type, privacy: .public)"
             )
         }
         #endif
 
         do {
             let response: YouTubeStreamResponse = try await request(
-                endpoint: "/youtube/stream/\(videoId)?type=\(type)",
-                headers: extraHeaders
+                endpoint: "/youtube/stream/\(videoId)?type=\(type)"
             )
             #if DEBUG
             if UserDefaults.standard.bool(forKey: "enableNetworkDebugLogs") {

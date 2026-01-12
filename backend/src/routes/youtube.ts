@@ -19,6 +19,7 @@ import {
   verifyStreamProxySignature,
   type StreamType,
 } from "../lib/streamToken.js";
+import { getUserIdFromContext } from "../lib/auth.js";
 
 function extractYtdlpErrorMessage(error: unknown): string | undefined {
   const anyError = error as any;
@@ -55,7 +56,6 @@ const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 const youtubeRouter = new Hono();
 
 const streamProxySecret = process.env.STREAM_PROXY_SECRET;
-const streamProxyAccessToken = process.env.STREAM_PROXY_ACCESS_TOKEN;
 const streamProxyTtlSeconds = parseInt(
   process.env.STREAM_PROXY_TTL_SECONDS || "21600",
   10
@@ -325,12 +325,8 @@ youtubeRouter.get(
     const { type } = c.req.valid("query");
 
     try {
-      if (streamProxySecret && streamProxyAccessToken) {
-        const provided = c.req.header("x-feedflow-stream-token");
-        if (!provided || provided !== streamProxyAccessToken) {
-          return c.json({ error: "Unauthorized" }, 401);
-        }
-      }
+      // Minting signed /proxy URLs should be restricted to authenticated app users.
+      await getUserIdFromContext(c);
 
       let videoId = requestedVideoId;
       let streams: Awaited<ReturnType<typeof getStreamUrls>>;
