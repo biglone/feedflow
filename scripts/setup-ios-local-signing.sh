@@ -62,10 +62,30 @@ if [[ ! -d "$config_dir" ]]; then
   exit 1
 fi
 
+existing_bundle_id=""
+existing_team_id=""
+
 if [[ -f "$local_xcconfig" && "$force" != "1" ]]; then
-  echo "Already exists: $local_xcconfig"
-  echo "Re-run with --force to overwrite."
-  exit 0
+  existing_team_id="$(sed -n 's/^[[:space:]]*FEEDFLOW_DEVELOPMENT_TEAM[[:space:]]*=[[:space:]]*\\([A-Z0-9]\\{10\\}\\).*/\\1/p' "$local_xcconfig" | head -n 1 || true)"
+  if [[ -z "$existing_team_id" ]]; then
+    existing_team_id="$(sed -n 's/^[[:space:]]*DEVELOPMENT_TEAM[[:space:]]*=[[:space:]]*\\([A-Z0-9]\\{10\\}\\).*/\\1/p' "$local_xcconfig" | head -n 1 || true)"
+  fi
+
+  existing_bundle_id="$(sed -n 's/^[[:space:]]*FEEDFLOW_BUNDLE_ID[[:space:]]*=[[:space:]]*\\([^[:space:]]\\+\\).*/\\1/p' "$local_xcconfig" | head -n 1 || true)"
+  if [[ -z "$existing_bundle_id" ]]; then
+    existing_bundle_id="$(sed -n 's/^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER[[:space:]]*=[[:space:]]*\\([^[:space:]]\\+\\).*/\\1/p' "$local_xcconfig" | head -n 1 || true)"
+  fi
+
+  if [[ -n "$existing_team_id" ]]; then
+    echo "Already configured: $local_xcconfig"
+    echo "DEVELOPMENT_TEAM=$existing_team_id"
+    exit 0
+  fi
+
+  echo "Found existing local xcconfig, but Team ID is missing; overwriting: $local_xcconfig" >&2
+  if [[ -n "$existing_bundle_id" && -z "$bundle_id" ]]; then
+    bundle_id="$existing_bundle_id"
+  fi
 fi
 
 if [[ -z "$team_id" ]]; then
