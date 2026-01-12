@@ -83,7 +83,7 @@ if [[ -f "$local_xcconfig" && "$force" != "1" ]]; then
   fi
 
   echo "Found existing local xcconfig, but Team ID is missing; overwriting: $local_xcconfig" >&2
-  if [[ -n "$existing_bundle_id" && -z "$bundle_id" ]]; then
+  if [[ -n "$existing_bundle_id" && -z "$bundle_id" && "$existing_bundle_id" != "com.feedflow.app" ]]; then
     bundle_id="$existing_bundle_id"
   fi
 fi
@@ -112,15 +112,18 @@ if [[ -z "$team_id" ]]; then
     if [[ -d "$profiles_dir" ]]; then
       teams_list="$(find "$profiles_dir" -type f -name '*.mobileprovision' -print0 2>/dev/null \
         | while IFS= read -r -d '' profile; do
-            security cms -D -i "$profile" 2>/dev/null \
-              | awk '
-                  /<key>TeamIdentifier<\/key>/ { in_team=1; next }
-                  in_team && match($0, /<string>([^<]+)<\/string>/, m) {
-                    if (length(m[1]) == 10) { print m[1]; exit }
-                  }
-                  in_team && /<\/array>/ { in_team=0 }
-                ' \
-              || true
+            team_from_profile="$(
+              security cms -D -i "$profile" 2>/dev/null \
+                | tr -d '\r' \
+                | sed -n '/<key>TeamIdentifier<\\/key>/,/<\\/array>/p' \
+                | sed -n 's/.*<string>\\([A-Z0-9]\\{10\\}\\)<\\/string>.*/\\1/p' \
+                | head -n 1 \
+                || true
+            )"
+
+            if [[ -n "$team_from_profile" ]]; then
+              echo "$team_from_profile"
+            fi
           done \
         | sort -u \
         || true)"
@@ -128,7 +131,7 @@ if [[ -z "$team_id" ]]; then
   fi
 
   if [[ -z "$teams_list" ]]; then
-    echo "No Apple Development Team ID found in code signing identities." >&2
+    echo "No Apple Team ID found for code signing." >&2
     echo "Make sure you have an 'Apple Development' certificate installed in Keychain Access (Xcode -> Settings -> Accounts -> Manage Certificates -> +)." >&2
     echo "Or provide it manually via: --team-id ABCDE12345" >&2
     exit 1
