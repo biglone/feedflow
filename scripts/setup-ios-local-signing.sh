@@ -66,14 +66,14 @@ existing_bundle_id=""
 existing_team_id=""
 
 if [[ -f "$local_xcconfig" && "$force" != "1" ]]; then
-  existing_team_id="$(sed -n 's/^[[:space:]]*FEEDFLOW_DEVELOPMENT_TEAM[[:space:]]*=[[:space:]]*\\([A-Z0-9]\\{10\\}\\).*/\\1/p' "$local_xcconfig" | head -n 1 || true)"
+  existing_team_id="$(sed -n 's/^[[:space:]]*FEEDFLOW_DEVELOPMENT_TEAM[[:space:]]*=[[:space:]]*\([A-Z0-9]\{10\}\).*/\1/p' "$local_xcconfig" | head -n 1 || true)"
   if [[ -z "$existing_team_id" ]]; then
-    existing_team_id="$(sed -n 's/^[[:space:]]*DEVELOPMENT_TEAM[[:space:]]*=[[:space:]]*\\([A-Z0-9]\\{10\\}\\).*/\\1/p' "$local_xcconfig" | head -n 1 || true)"
+    existing_team_id="$(sed -n 's/^[[:space:]]*DEVELOPMENT_TEAM[[:space:]]*=[[:space:]]*\([A-Z0-9]\{10\}\).*/\1/p' "$local_xcconfig" | head -n 1 || true)"
   fi
 
-  existing_bundle_id="$(sed -n 's/^[[:space:]]*FEEDFLOW_BUNDLE_ID[[:space:]]*=[[:space:]]*\\([^[:space:]]\\+\\).*/\\1/p' "$local_xcconfig" | head -n 1 || true)"
+  existing_bundle_id="$(sed -n 's/^[[:space:]]*FEEDFLOW_BUNDLE_ID[[:space:]]*=[[:space:]]*\([^[:space:]]*\).*/\1/p' "$local_xcconfig" | head -n 1 || true)"
   if [[ -z "$existing_bundle_id" ]]; then
-    existing_bundle_id="$(sed -n 's/^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER[[:space:]]*=[[:space:]]*\\([^[:space:]]\\+\\).*/\\1/p' "$local_xcconfig" | head -n 1 || true)"
+    existing_bundle_id="$(sed -n 's/^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER[[:space:]]*=[[:space:]]*\([^[:space:]]*\).*/\1/p' "$local_xcconfig" | head -n 1 || true)"
   fi
 
   if [[ -n "$existing_team_id" ]]; then
@@ -96,13 +96,13 @@ if [[ -z "$team_id" ]]; then
   fi
 
   teams_list="$(security find-identity -p codesigning -v 2>/dev/null \
-    | sed -n 's/.*\"Apple Development:.*(\\([A-Z0-9]\\{10\\}\\))\".*/\\1/p' \
+    | sed -n 's/.*"Apple Development:.*(\([A-Z0-9]\{10\}\))".*/\1/p' \
     | sort -u \
     || true)"
 
   if [[ -z "$teams_list" ]]; then
     teams_list="$(security find-identity -p codesigning -v 2>/dev/null \
-      | sed -n 's/.*\"Apple Distribution:.*(\\([A-Z0-9]\\{10\\}\\))\".*/\\1/p' \
+      | sed -n 's/.*"Apple Distribution:.*(\([A-Z0-9]\{10\}\))".*/\1/p' \
       | sort -u \
       || true)"
   fi
@@ -115,8 +115,8 @@ if [[ -z "$team_id" ]]; then
             team_from_profile="$(
               security cms -D -i "$profile" 2>/dev/null \
                 | tr -d '\r' \
-                | sed -n '/<key>TeamIdentifier<\\/key>/,/<\\/array>/p' \
-                | sed -n 's/.*<string>\\([A-Z0-9]\\{10\\}\\)<\\/string>.*/\\1/p' \
+                | sed -n '/<key>TeamIdentifier<\/key>/,/<\/array>/p' \
+                | sed -n 's/.*<string>\([A-Z0-9]\{10\}\)<\/string>.*/\1/p' \
                 | head -n 1 \
                 || true
             )"
