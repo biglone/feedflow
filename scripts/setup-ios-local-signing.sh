@@ -101,8 +101,36 @@ if [[ -z "$team_id" ]]; then
     || true)"
 
   if [[ -z "$teams_list" ]]; then
+    teams_list="$(security find-identity -p codesigning -v 2>/dev/null \
+      | sed -n 's/.*\"Apple Distribution:.*(\\([A-Z0-9]\\{10\\}\\))\".*/\\1/p' \
+      | sort -u \
+      || true)"
+  fi
+
+  if [[ -z "$teams_list" ]]; then
+    profiles_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
+    if [[ -d "$profiles_dir" ]]; then
+      teams_list="$(find "$profiles_dir" -type f -name '*.mobileprovision' -print0 2>/dev/null \
+        | while IFS= read -r -d '' profile; do
+            security cms -D -i "$profile" 2>/dev/null \
+              | awk '
+                  /<key>TeamIdentifier<\/key>/ { in_team=1; next }
+                  in_team && match($0, /<string>([^<]+)<\/string>/, m) {
+                    if (length(m[1]) == 10) { print m[1]; exit }
+                  }
+                  in_team && /<\/array>/ { in_team=0 }
+                ' \
+              || true
+          done \
+        | sort -u \
+        || true)"
+    fi
+  fi
+
+  if [[ -z "$teams_list" ]]; then
     echo "No Apple Development Team ID found in code signing identities." >&2
-    echo "Make sure you have an 'Apple Development' certificate installed in Keychain Access." >&2
+    echo "Make sure you have an 'Apple Development' certificate installed in Keychain Access (Xcode -> Settings -> Accounts -> Manage Certificates -> +)." >&2
+    echo "Or provide it manually via: --team-id ABCDE12345" >&2
     exit 1
   fi
 
