@@ -14,7 +14,7 @@ Options:
   --team-id <TEAMID>       Override detected Apple Team ID (10 chars, e.g. ABCDE12345)
   --bundle-id <BUNDLEID>   Override generated bundle identifier (e.g. com.yourname.feedflow)
   --force                 Overwrite existing local xcconfig
-  --non-interactive        Pick the first Team ID when multiple are found (prints a warning)
+  --non-interactive        Prefer Xcode's last-selected Team ID when available; otherwise pick the first Team ID (prints a warning)
 EOF
 }
 
@@ -89,50 +89,77 @@ if [[ -f "$local_xcconfig" && "$force" != "1" ]]; then
 fi
 
 if [[ -z "$team_id" ]]; then
-  if ! command -v security >/dev/null 2>&1; then
-    echo "Cannot auto-detect Team ID: 'security' command not found (macOS only)." >&2
-    echo "Provide it via --team-id ABCDE12345" >&2
-    exit 1
-  fi
+  teams_list=""
+  teams_source=""
+  xcode_last_selected_team_id=""
 
-  teams_list="$(security find-identity -p codesigning -v 2>/dev/null \
-    | sed -n 's/.*"Apple Development:.*(\([A-Z0-9]\{10\}\))".*/\1/p' \
-    | sort -u \
-    || true)"
+  if command -v defaults >/dev/null 2>&1; then
+    xcode_last_selected_team_id="$(defaults read com.apple.dt.Xcode IDEProvisioningTeamManagerLastSelectedTeamID 2>/dev/null || true)"
+    xcode_last_selected_team_id="$(echo "$xcode_last_selected_team_id" | tr -d '[:space:]')"
+    if [[ ! "$xcode_last_selected_team_id" =~ ^[A-Z0-9]{10}$ ]]; then
+      xcode_last_selected_team_id=""
+    fi
 
-  if [[ -z "$teams_list" ]]; then
-    teams_list="$(security find-identity -p codesigning -v 2>/dev/null \
-      | sed -n 's/.*"Apple Distribution:.*(\([A-Z0-9]\{10\}\))".*/\1/p' \
+    teams_list="$(defaults read com.apple.dt.Xcode IDEProvisioningTeams 2>/dev/null \
+      | sed -n 's/.*teamID = \([A-Z0-9]\{10\}\);.*/\1/p' \
       | sort -u \
       || true)"
+
+    if [[ -n "$teams_list" ]]; then
+      teams_source="xcode"
+    fi
   fi
 
   if [[ -z "$teams_list" ]]; then
-    profiles_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
-    if [[ -d "$profiles_dir" ]]; then
-      teams_list="$(find "$profiles_dir" -type f -name '*.mobileprovision' -print0 2>/dev/null \
-        | while IFS= read -r -d '' profile; do
-            team_from_profile="$(
-              security cms -D -i "$profile" 2>/dev/null \
-                | tr -d '\r' \
-                | sed -n '/<key>TeamIdentifier<\/key>/,/<\/array>/p' \
-                | sed -n 's/.*<string>\([A-Z0-9]\{10\}\)<\/string>.*/\1/p' \
-                | head -n 1 \
-                || true
-            )"
+    if ! command -v security >/dev/null 2>&1; then
+      echo "Cannot auto-detect Team ID: neither Xcode preferences nor 'security' are available (macOS only)." >&2
+      echo "Provide it via --team-id ABCDE12345" >&2
+      exit 1
+    fi
 
-            if [[ -n "$team_from_profile" ]]; then
-              echo "$team_from_profile"
-            fi
-          done \
+    teams_list="$(security find-identity -p codesigning -v 2>/dev/null \
+      | sed -n 's/.*"Apple Development:.*(\([A-Z0-9]\{10\}\))".*/\1/p' \
+      | sort -u \
+      || true)"
+
+    if [[ -z "$teams_list" ]]; then
+      teams_list="$(security find-identity -p codesigning -v 2>/dev/null \
+        | sed -n 's/.*"Apple Distribution:.*(\([A-Z0-9]\{10\}\))".*/\1/p' \
         | sort -u \
         || true)"
+    fi
+
+    if [[ -z "$teams_list" ]]; then
+      profiles_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
+      if [[ -d "$profiles_dir" ]]; then
+        teams_list="$(find "$profiles_dir" -type f -name '*.mobileprovision' -print0 2>/dev/null \
+          | while IFS= read -r -d '' profile; do
+              team_from_profile="$(
+                security cms -D -i "$profile" 2>/dev/null \
+                  | tr -d '\r' \
+                  | sed -n '/<key>TeamIdentifier<\/key>/,/<\/array>/p' \
+                  | sed -n 's/.*<string>\([A-Z0-9]\{10\}\)<\/string>.*/\1/p' \
+                  | head -n 1 \
+                  || true
+              )"
+
+              if [[ -n "$team_from_profile" ]]; then
+                echo "$team_from_profile"
+              fi
+            done \
+          | sort -u \
+          || true)"
+      fi
+    fi
+
+    if [[ -n "$teams_list" ]]; then
+      teams_source="keychain"
     fi
   fi
 
   if [[ -z "$teams_list" ]]; then
     echo "No Apple Team ID found for code signing." >&2
-    echo "Make sure you have an 'Apple Development' certificate installed in Keychain Access (Xcode -> Settings -> Accounts -> Manage Certificates -> +)." >&2
+    echo "Make sure you have an account in Xcode (Xcode -> Settings -> Accounts) or an 'Apple Development' certificate installed in Keychain Access (Xcode -> Settings -> Accounts -> Manage Certificates -> +)." >&2
     echo "Or provide it manually via: --team-id ABCDE12345" >&2
     exit 1
   fi
@@ -144,10 +171,32 @@ if [[ -z "$team_id" ]]; then
 
   if [[ "${#team_ids[@]}" == "1" ]]; then
     team_id="${team_ids[0]}"
+    if [[ "$teams_source" == "xcode" ]]; then
+      echo "Using Team ID from Xcode: $team_id" >&2
+    fi
   else
     if [[ "$non_interactive" == "1" ]]; then
-      team_id="${team_ids[0]}"
-      echo "Multiple Team IDs found; using $team_id. Override with --team-id <TEAMID> if needed." >&2
+      if [[ "$teams_source" == "xcode" && -n "$xcode_last_selected_team_id" ]]; then
+        picked_last_selected=0
+        for t in "${team_ids[@]}"; do
+          if [[ "$t" == "$xcode_last_selected_team_id" ]]; then
+            team_id="$xcode_last_selected_team_id"
+            picked_last_selected=1
+            break
+          fi
+        done
+
+        if [[ "$picked_last_selected" == "1" ]]; then
+          echo "Multiple Team IDs found in Xcode; using last-selected Team ID: $team_id. Override with --team-id <TEAMID> if needed." >&2
+        else
+          team_id="${team_ids[0]}"
+          echo "Multiple Team IDs found in Xcode; last-selected Team ID is unavailable. Using $team_id. Override with --team-id <TEAMID> if needed." >&2
+        fi
+      else
+        team_id="${team_ids[0]}"
+        echo "Multiple Team IDs found; using $team_id. Override with --team-id <TEAMID> if needed." >&2
+      fi
+
       echo "$teams_list" >&2
     else
       echo "Multiple Team IDs found:"
