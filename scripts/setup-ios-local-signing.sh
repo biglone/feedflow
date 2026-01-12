@@ -8,11 +8,13 @@ Usage: scripts/setup-ios-local-signing.sh [--team-id <TEAMID>] [--bundle-id <BUN
 Creates/updates `ios/FeedFlow/Config/FeedFlow.local.xcconfig` (gitignored) so Xcode can sign without modifying
 `ios/FeedFlow.xcodeproj/project.pbxproj` on each machine.
 
+Tip (recommended): run `./scripts/install-githooks.sh` once to generate this file automatically after `git pull`.
+
 Options:
   --team-id <TEAMID>       Override detected Apple Team ID (10 chars, e.g. ABCDE12345)
   --bundle-id <BUNDLEID>   Override generated bundle identifier (e.g. com.yourname.feedflow)
   --force                 Overwrite existing local xcconfig
-  --non-interactive        Fail instead of prompting when multiple Team IDs are found
+  --non-interactive        Pick the first Team ID when multiple are found (prints a warning)
 EOF
 }
 
@@ -74,13 +76,13 @@ if [[ -z "$team_id" ]]; then
   fi
 
   teams_list="$(security find-identity -p codesigning -v 2>/dev/null \
-    | sed -n 's/.*(\\([A-Z0-9]\\{10\\}\\)).*/\\1/p' \
+    | sed -n 's/.*\"Apple Development:.*(\\([A-Z0-9]\\{10\\}\\))\".*/\\1/p' \
     | sort -u \
     || true)"
 
   if [[ -z "$teams_list" ]]; then
-    echo "No Team ID found in code signing identities." >&2
-    echo "Make sure you have an 'Apple Development' certificate installed in Keychain." >&2
+    echo "No Apple Development Team ID found in code signing identities." >&2
+    echo "Make sure you have an 'Apple Development' certificate installed in Keychain Access." >&2
     exit 1
   fi
 
@@ -93,20 +95,20 @@ if [[ -z "$team_id" ]]; then
     team_id="${team_ids[0]}"
   else
     if [[ "$non_interactive" == "1" ]]; then
-      echo "Multiple Team IDs found; re-run with --team-id <TEAMID>:" >&2
+      team_id="${team_ids[0]}"
+      echo "Multiple Team IDs found; using $team_id. Override with --team-id <TEAMID> if needed." >&2
       echo "$teams_list" >&2
-      exit 1
+    else
+      echo "Multiple Team IDs found:"
+      PS3="Select Team ID: "
+      select picked in "${team_ids[@]}"; do
+        if [[ -n "${picked:-}" ]]; then
+          team_id="$picked"
+          break
+        fi
+        echo "Invalid selection."
+      done
     fi
-
-    echo "Multiple Team IDs found:"
-    PS3="Select Team ID: "
-    select picked in "${team_ids[@]}"; do
-      if [[ -n "${picked:-}" ]]; then
-        team_id="$picked"
-        break
-      fi
-      echo "Invalid selection."
-    done
   fi
 fi
 
@@ -117,7 +119,7 @@ fi
 
 if [[ -z "$bundle_id" ]]; then
   team_lower="$(echo "$team_id" | tr '[:upper:]' '[:lower:]')"
-  bundle_id="com.feedflow.team${team_lower}"
+  bundle_id="com.team${team_lower}.feedflow"
 fi
 
 mkdir -p "$config_dir"
@@ -135,3 +137,4 @@ EOF
 echo "Wrote: $local_xcconfig"
 echo "DEVELOPMENT_TEAM=$team_id"
 echo "BUNDLE_ID=$bundle_id"
+echo "Tip: run ./scripts/install-githooks.sh once to auto-generate this after git pull."

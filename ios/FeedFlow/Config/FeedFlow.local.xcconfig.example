@@ -1,5 +1,9 @@
 // Copy this file to `FeedFlow.local.xcconfig` and fill in your own values.
-// Or run: `./scripts/setup-ios-local-signing.sh` (macOS) to auto-generate it.
+// Or (macOS) run:
+//   `./scripts/setup-ios-local-signing.sh`
+//
+// Optional (recommended): install repo-local git hooks so the file is generated automatically after `git pull`:
+//   `./scripts/install-githooks.sh`
 // Example:
 // FEEDFLOW_BUNDLE_ID = com.yourname.feedflow
 // FEEDFLOW_DEVELOPMENT_TEAM = ABCDE12345
@@ -8,5 +12,5 @@
 // PRODUCT_BUNDLE_IDENTIFIER = com.yourname.feedflow
 // DEVELOPMENT_TEAM = ABCDE12345
 
-FEEDFLOW_BUNDLE_ID =
-FEEDFLOW_DEVELOPMENT_TEAM =
+FEEDFLOW_BUNDLE_ID = com.yourname.feedflow
+FEEDFLOW_DEVELOPMENT_TEAM = ABCDE12345

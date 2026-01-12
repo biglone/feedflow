@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${FEEDFLOW_DISABLE_LOCAL_SIGNING_HOOKS:-}" == "1" ]]; then
+  exit 0
+fi
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+local_xcconfig="$repo_root/ios/FeedFlow/Config/FeedFlow.local.xcconfig"
+setup_script="$repo_root/scripts/setup-ios-local-signing.sh"
+
+if [[ -f "$local_xcconfig" ]]; then
+  exit 0
+fi
+
+if [[ ! -f "$setup_script" ]]; then
+  exit 0
+fi
+
+"$setup_script" --non-interactive || true
