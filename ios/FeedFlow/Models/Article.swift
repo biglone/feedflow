@@ -11,6 +11,7 @@ final class Article {
     var articleURL: String?
     var author: String?
     var imageURL: String?
+    var audioURL: String?
     var publishedAt: Date?
     var isRead: Bool
     var isStarred: Bool
@@ -27,6 +28,7 @@ final class Article {
         articleURL: String? = nil,
         author: String? = nil,
         imageURL: String? = nil,
+        audioURL: String? = nil,
         publishedAt: Date? = nil
     ) {
         self.id = id
@@ -37,6 +39,7 @@ final class Article {
         self.articleURL = articleURL
         self.author = author
         self.imageURL = imageURL
+        self.audioURL = audioURL
         self.publishedAt = publishedAt
         self.isRead = false
         self.isStarred = false
@@ -45,6 +48,14 @@ final class Article {
 }
 
 extension Article {
+    var resolvedAudioURL: String? {
+        guard let audioURL = audioURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !audioURL.isEmpty else {
+            return nil
+        }
+        return audioURL
+    }
+
     var youtubeVideoId: String? {
         extractYouTubeVideoId(from: articleURL) ?? extractYouTubeVideoId(from: guid)
     }

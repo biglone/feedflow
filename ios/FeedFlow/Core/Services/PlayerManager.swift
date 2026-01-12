@@ -30,6 +30,7 @@ class PlayerManager: ObservableObject {
     @Published var playbackMode: PlaybackMode = .video
     @Published var currentVideoId: String?
     @Published var nowPlayingInfo: NowPlayingInfo?
+    @Published var nowPlayingFeedKind: FeedKind?
 
     private var player: AVPlayer?
     private var timeObserver: Any?
@@ -136,7 +137,17 @@ class PlayerManager: ObservableObject {
 
     // MARK: - Playback Control
 
-    func loadAndPlay(url: URL, videoId: String, info: NowPlayingInfo, forceReload: Bool = false) async {
+    func loadAndPlay(
+        url: URL,
+        videoId: String,
+        info: NowPlayingInfo,
+        feedKind: FeedKind? = nil,
+        forceReload: Bool = false
+    ) async {
+        if let feedKind {
+            nowPlayingFeedKind = feedKind
+        }
+
         // If already playing this video, just resume
         if currentVideoId == videoId && player != nil && !forceReload {
             if !isPlaying {
@@ -294,6 +305,7 @@ class PlayerManager: ObservableObject {
         isSeekable = false
         currentVideoId = nil
         nowPlayingInfo = nil
+        nowPlayingFeedKind = nil
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         deactivateAudioSession()

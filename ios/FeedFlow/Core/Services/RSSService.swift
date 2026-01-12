@@ -39,6 +39,7 @@ struct ParsedArticle {
     let url: String?
     let author: String?
     let imageURL: String?
+    let audioURL: String?
     let publishedAt: Date?
 }
 
@@ -87,6 +88,7 @@ actor RSSService {
             let title = item.title ?? "Untitled"
 
             let enclosureURL = item.enclosure?.attributes?.url
+            let audioURL = FeedKind.isAudioEnclosureURL(enclosureURL) ? enclosureURL : nil
             if FeedKind.isAudioEnclosureURL(enclosureURL) {
                 containsAudioEnclosure = true
             }
@@ -100,6 +102,7 @@ actor RSSService {
                 author: item.author ?? item.dublinCore?.dcCreator,
                 imageURL: item.media?.mediaThumbnails?.first?.attributes?.url
                     ?? (FeedKind.isImageURL(enclosureURL) ? enclosureURL : nil),
+                audioURL: audioURL,
                 publishedAt: item.pubDate
             )
         } ?? []
@@ -127,6 +130,7 @@ actor RSSService {
                 url: entry.links?.first?.attributes?.href,
                 author: entry.authors?.first?.name,
                 imageURL: entry.media?.mediaThumbnails?.first?.attributes?.url,
+                audioURL: nil,
                 publishedAt: entry.published ?? entry.updated
             )
         } ?? []
@@ -154,6 +158,7 @@ actor RSSService {
                 url: item.url,
                 author: item.author?.name,
                 imageURL: item.image ?? item.bannerImage,
+                audioURL: nil,
                 publishedAt: item.datePublished
             )
         } ?? []

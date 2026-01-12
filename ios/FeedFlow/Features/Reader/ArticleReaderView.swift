@@ -10,7 +10,11 @@ struct ArticleReaderView: View {
 
     @State private var showingSafari = false
     @State private var showingVideoPlayer = false
+    @State private var showingAudioPlayer = false
     @StateObject private var playerManager = PlayerManager.shared
+    @State private var isLoadingPodcastAudio = false
+    @State private var podcastAudioError: Error?
+    @State private var showingPodcastAudioError = false
 
     var body: some View {
         ScrollView {
@@ -80,6 +84,38 @@ struct ArticleReaderView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
+                    .padding(.horizontal)
+                }
+
+                // Podcast Play Button
+                if isPodcastEpisode {
+                    Button {
+                        Task { await playPodcastEpisode() }
+                    } label: {
+                        HStack {
+                            Image(systemName: "play.circle.fill")
+                                .font(.system(size: 44))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Play Episode")
+                                    .font(.headline)
+                                Text(isLoadingPodcastAudio ? "Loading audio..." : "Listen on FeedFlow")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if isLoadingPodcastAudio {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding()
+                        .background(Color.accentColor.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isLoadingPodcastAudio)
                     .padding(.horizontal)
                 }
 
@@ -155,10 +191,55 @@ struct ArticleReaderView: View {
                 )
             }
         }
+        .fullScreenCover(isPresented: $showingAudioPlayer) {
+            AudioPlayerView()
+        }
+        .alert("Podcast", isPresented: $showingPodcastAudioError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(podcastAudioError?.localizedDescription ?? "Failed to load audio")
+        }
     }
 
     private var youtubeVideoId: String? {
         article.youtubeVideoId
+    }
+
+    private var isPodcastEpisode: Bool {
+        article.feed?.resolvedKind == .podcast
+    }
+
+    @MainActor
+    private func playPodcastEpisode() async {
+        guard !isLoadingPodcastAudio else { return }
+        isLoadingPodcastAudio = true
+        defer { isLoadingPodcastAudio = false }
+
+        do {
+            let feedManager = FeedManager(modelContext: modelContext)
+            let audioURL = try await feedManager.getPodcastAudioURL(for: article)
+
+            let artworkURL = article.resolvedThumbnailURL ?? article.feed?.iconURL
+            let info = NowPlayingInfo(
+                title: article.title,
+                artist: article.feed?.title ?? article.author,
+                thumbnailUrl: artworkURL,
+                duration: 0
+            )
+
+            playerManager.playbackMode = .audio
+            await playerManager.loadAndPlay(
+                url: audioURL,
+                videoId: article.guid.isEmpty ? article.id.uuidString : article.guid,
+                info: info,
+                feedKind: .podcast
+            )
+
+            showingAudioPlayer = true
+        } catch {
+            podcastAudioError = error
+            showingPodcastAudioError = true
+        }
     }
 
     private func markAsRead() {

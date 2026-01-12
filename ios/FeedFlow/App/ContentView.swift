@@ -70,8 +70,10 @@ struct ContentView: View {
             }
         }
         .fullScreenCover(isPresented: $showingFullPlayer) {
-            if let videoId = playerManager.currentVideoId,
-               let info = playerManager.nowPlayingInfo {
+            if playerManager.nowPlayingFeedKind == .podcast {
+                AudioPlayerView()
+            } else if let videoId = playerManager.currentVideoId,
+                      let info = playerManager.nowPlayingInfo {
                 VideoPlayerView(
                     videoId: videoId,
                     title: info.title,

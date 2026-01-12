@@ -56,22 +56,25 @@ class FeedManager: ObservableObject {
                     )
                     modelContext.insert(feed)
 
-                    // Fetch articles for this feed
-                    let cloudArticles = try await apiClient.getFeedArticles(feedId: cloudFeed.id)
-                    for cloudArticle in cloudArticles {
-                        let article = Article(
-                            guid: cloudArticle.guid,
-                            title: cloudArticle.title,
-                            content: cloudArticle.content,
-                            summary: cloudArticle.summary,
-                            articleURL: cloudArticle.url,
-                            author: cloudArticle.author,
-                            imageURL: cloudArticle.imageUrl,
-                            publishedAt: cloudArticle.publishedAt
-                        )
-                        article.isRead = cloudArticle.isRead
-                        article.isStarred = cloudArticle.isStarred
-                        article.feed = feed
+	                    // Fetch articles for this feed
+	                    let cloudArticles = try await apiClient.getFeedArticles(feedId: cloudFeed.id)
+	                    for cloudArticle in cloudArticles {
+	                        let audioURL = FeedKind.isAudioEnclosureURL(cloudArticle.imageUrl) ? cloudArticle.imageUrl : nil
+	                        let imageURL = audioURL == nil ? cloudArticle.imageUrl : nil
+	                        let article = Article(
+	                            guid: cloudArticle.guid,
+	                            title: cloudArticle.title,
+	                            content: cloudArticle.content,
+	                            summary: cloudArticle.summary,
+	                            articleURL: cloudArticle.url,
+	                            author: cloudArticle.author,
+	                            imageURL: imageURL,
+	                            audioURL: audioURL,
+	                            publishedAt: cloudArticle.publishedAt
+	                        )
+	                        article.isRead = cloudArticle.isRead
+	                        article.isStarred = cloudArticle.isStarred
+	                        article.feed = feed
                         modelContext.insert(article)
                     }
 
@@ -118,22 +121,25 @@ class FeedManager: ObservableObject {
 
             modelContext.insert(feed)
 
-            // Fetch articles from cloud
-            let cloudArticles = try await apiClient.getFeedArticles(feedId: cloudFeed.id)
-            for cloudArticle in cloudArticles {
-                let article = Article(
-                    guid: cloudArticle.guid,
-                    title: cloudArticle.title,
-                    content: cloudArticle.content,
-                    summary: cloudArticle.summary,
-                    articleURL: cloudArticle.url,
-                    author: cloudArticle.author,
-                    imageURL: cloudArticle.imageUrl,
-                    publishedAt: cloudArticle.publishedAt
-                )
-                article.feed = feed
-                modelContext.insert(article)
-            }
+	            // Fetch articles from cloud
+	            let cloudArticles = try await apiClient.getFeedArticles(feedId: cloudFeed.id)
+	            for cloudArticle in cloudArticles {
+	                let audioURL = FeedKind.isAudioEnclosureURL(cloudArticle.imageUrl) ? cloudArticle.imageUrl : nil
+	                let imageURL = audioURL == nil ? cloudArticle.imageUrl : nil
+	                let article = Article(
+	                    guid: cloudArticle.guid,
+	                    title: cloudArticle.title,
+	                    content: cloudArticle.content,
+	                    summary: cloudArticle.summary,
+	                    articleURL: cloudArticle.url,
+	                    author: cloudArticle.author,
+	                    imageURL: imageURL,
+	                    audioURL: audioURL,
+	                    publishedAt: cloudArticle.publishedAt
+	                )
+	                article.feed = feed
+	                modelContext.insert(article)
+	            }
 
             feed.unreadCount = cloudArticles.count
             feed.lastUpdated = Date()
@@ -171,20 +177,21 @@ class FeedManager: ObservableObject {
 
         modelContext.insert(feed)
 
-        for parsedArticle in parsedFeed.articles {
-            let article = Article(
-                guid: parsedArticle.guid,
-                title: parsedArticle.title,
-                content: parsedArticle.content,
-                summary: parsedArticle.summary,
-                articleURL: parsedArticle.url,
-                author: parsedArticle.author,
-                imageURL: parsedArticle.imageURL,
-                publishedAt: parsedArticle.publishedAt
-            )
-            article.feed = feed
-            modelContext.insert(article)
-        }
+	        for parsedArticle in parsedFeed.articles {
+	            let article = Article(
+	                guid: parsedArticle.guid,
+	                title: parsedArticle.title,
+	                content: parsedArticle.content,
+	                summary: parsedArticle.summary,
+	                articleURL: parsedArticle.url,
+	                author: parsedArticle.author,
+	                imageURL: parsedArticle.imageURL,
+	                audioURL: parsedArticle.audioURL,
+	                publishedAt: parsedArticle.publishedAt
+	            )
+	            article.feed = feed
+	            modelContext.insert(article)
+	        }
 
         feed.unreadCount = parsedFeed.articles.count
         feed.lastUpdated = Date()
@@ -210,22 +217,23 @@ class FeedManager: ObservableObject {
 
         var newArticlesCount = 0
         for parsedArticle in parsedFeed.articles {
-            if !existingGUIDs.contains(parsedArticle.guid) {
-                let article = Article(
-                    guid: parsedArticle.guid,
-                    title: parsedArticle.title,
-                    content: parsedArticle.content,
-                    summary: parsedArticle.summary,
-                    articleURL: parsedArticle.url,
-                    author: parsedArticle.author,
-                    imageURL: parsedArticle.imageURL,
-                    publishedAt: parsedArticle.publishedAt
-                )
-                article.feed = feed
-                modelContext.insert(article)
-                newArticlesCount += 1
-            }
-        }
+	            if !existingGUIDs.contains(parsedArticle.guid) {
+	                let article = Article(
+	                    guid: parsedArticle.guid,
+	                    title: parsedArticle.title,
+	                    content: parsedArticle.content,
+	                    summary: parsedArticle.summary,
+	                    articleURL: parsedArticle.url,
+	                    author: parsedArticle.author,
+	                    imageURL: parsedArticle.imageURL,
+	                    audioURL: parsedArticle.audioURL,
+	                    publishedAt: parsedArticle.publishedAt
+	                )
+	                article.feed = feed
+	                modelContext.insert(article)
+	                newArticlesCount += 1
+	            }
+	        }
 
         feed.unreadCount += newArticlesCount
         feed.lastUpdated = Date()
@@ -250,6 +258,73 @@ class FeedManager: ObservableObject {
                 self.error = error
             }
         }
+    }
+
+    // MARK: - Podcast Audio
+
+    enum PodcastAudioError: Error, LocalizedError {
+        case missingFeed
+        case audioNotFound
+        case invalidAudioURL
+
+        var errorDescription: String? {
+            switch self {
+            case .missingFeed:
+                return "Missing feed information for this episode."
+            case .audioNotFound:
+                return "No audio enclosure found for this episode."
+            case .invalidAudioURL:
+                return "Invalid audio URL."
+            }
+        }
+    }
+
+    func getPodcastAudioURL(for article: Article) async throws -> URL {
+        if let urlString = article.resolvedAudioURL, let url = URL(string: urlString) {
+            return url
+        }
+
+        guard let feed = article.feed else {
+            throw PodcastAudioError.missingFeed
+        }
+
+        let parsedFeed = try await rssService.fetchFeed(from: feed.feedURL)
+
+        let targetGuid = article.guid.trimmingCharacters(in: .whitespacesAndNewlines)
+        let targetURL = normalizeURLString(article.articleURL)
+        let targetTitle = article.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let targetPublishedAt = article.publishedAt
+
+        let match =
+            parsedFeed.articles.first(where: { $0.guid == targetGuid })
+            ?? parsedFeed.articles.first(where: { normalizeURLString($0.url) == targetURL && targetURL != nil })
+            ?? parsedFeed.articles.first(where: { candidate in
+                let candidateTitle = candidate.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !candidateTitle.isEmpty, candidateTitle == targetTitle else { return false }
+                guard let targetPublishedAt, let candidatePublishedAt = candidate.publishedAt else { return true }
+                return abs(candidatePublishedAt.timeIntervalSince(targetPublishedAt)) < 60 * 60 * 24
+            })
+
+        guard let audioURLString = match?.audioURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !audioURLString.isEmpty else {
+            throw PodcastAudioError.audioNotFound
+        }
+
+        guard let url = URL(string: audioURLString) else {
+            throw PodcastAudioError.invalidAudioURL
+        }
+
+        article.audioURL = audioURLString
+        try? modelContext.save()
+
+        return url
+    }
+
+    private func normalizeURLString(_ value: String?) -> String? {
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return nil
+        }
+        return URL(string: value)?.absoluteString ?? value
     }
 
     // MARK: - YouTube Backfill (Local)

@@ -203,7 +203,13 @@ struct VideoPlayerView: View {
                 duration: TimeInterval(streams.duration)
             )
 
-            await playerManager.loadAndPlay(url: url, videoId: videoId, info: info, forceReload: forceReload)
+            await playerManager.loadAndPlay(
+                url: url,
+                videoId: videoId,
+                info: info,
+                feedKind: .youtube,
+                forceReload: forceReload
+            )
             isLoading = false
             scheduleHideControls()
         } catch {
@@ -295,6 +301,7 @@ struct PlayerControlsOverlay: View {
     let onSkipForward: () -> Void
     let onModeToggle: () -> Void
     let onDismiss: () -> Void
+    var showsModeToggle: Bool = true
 
     @State private var isScrubbing = false
     @State private var scrubValue: TimeInterval = 0
@@ -342,12 +349,17 @@ struct PlayerControlsOverlay: View {
                     Spacer()
 
                     // Audio/Video mode toggle
-                    Button {
-                        onModeToggle()
-                    } label: {
-                        Image(systemName: playbackMode == .audio ? "speaker.wave.2" : "play.rectangle")
-                            .font(.title2)
-                            .foregroundStyle(.white)
+                    if showsModeToggle {
+                        Button {
+                            onModeToggle()
+                        } label: {
+                            Image(systemName: playbackMode == .audio ? "speaker.wave.2" : "play.rectangle")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                        }
+                    } else {
+                        Color.clear
+                            .frame(width: 44, height: 44)
                     }
                 }
                 .padding()
