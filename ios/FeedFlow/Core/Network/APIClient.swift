@@ -496,7 +496,7 @@ actor APIClient {
             #if DEBUG
             if UserDefaults.standard.bool(forKey: "enableNetworkDebugLogs") {
                 AppLog.player.debug(
-                    "YouTube stream response videoId=\(videoId, privacy: .public) videoUrl=\(response.videoUrl ?? \"nil\", privacy: .public) audioUrl=\(response.audioUrl ?? \"nil\", privacy: .public) duration=\(response.duration, privacy: .public)"
+                    "YouTube stream response videoId=\(videoId, privacy: .public) videoUrl=\(response.videoUrl ?? "nil", privacy: .public) audioUrl=\(response.audioUrl ?? "nil", privacy: .public) duration=\(response.duration, privacy: .public)"
                 )
             }
             #endif
