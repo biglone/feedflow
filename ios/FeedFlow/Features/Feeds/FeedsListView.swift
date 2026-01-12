@@ -179,6 +179,7 @@ struct FeedRowView: View {
 private struct RecommendedFeed: Identifiable, Hashable {
     enum Kind: String, Hashable {
         case rss = "RSS"
+        case youtube = "YouTube"
         case podcast = "Podcast"
     }
 
@@ -208,16 +209,18 @@ private struct RecommendedFeed: Identifiable, Hashable {
 private enum RecommendedFeedCatalog {
     static let categoryOrder: [String: Int] = [
         "中文": 0,
-        "Linux": 1,
-        "Programming": 2,
-        "DevOps": 3,
-        "AI": 4,
-        "Tech": 5,
-        "Community": 6,
-        "Design": 7,
-        "Security": 8,
-        "Science": 9,
-        "Podcast": 10,
+        "YouTube 中文": 1,
+        "YouTube Global": 2,
+        "Linux": 3,
+        "Programming": 4,
+        "DevOps": 5,
+        "AI": 6,
+        "Tech": 7,
+        "Community": 8,
+        "Design": 9,
+        "Security": 10,
+        "Science": 11,
+        "Podcast": 12,
     ]
 
 	    static let items: [RecommendedFeed] = [
@@ -263,6 +266,132 @@ private enum RecommendedFeedCatalog {
 	            category: "中文",
 	            description: "有趣的开源项目精选"
 	        ),
+            RecommendedFeed(
+                title: "极客湾 Geekerwan",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCNi3K9HUzuTmILZH0iGupkw",
+                category: "YouTube 中文",
+                kind: .youtube,
+                description: "硬件评测与技术科普"
+            ),
+            RecommendedFeed(
+                title: "李永乐老师",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCSQsmKOnRA-2ol6a3M4Rpug",
+                category: "YouTube 中文",
+                kind: .youtube,
+                description: "数学、物理与科普"
+            ),
+            RecommendedFeed(
+                title: "回形针PaperClip",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCg3Ny8s-SJRtP93kH6cMDew",
+                category: "YouTube 中文",
+                kind: .youtube,
+                description: "知识科普"
+            ),
+            RecommendedFeed(
+                title: "小宁子",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCEwYe1cxnI9czwt_2u2hOcA",
+                category: "YouTube 中文",
+                kind: .youtube,
+                description: "数码与科技"
+            ),
+            RecommendedFeed(
+                title: "Veritasium",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHnyfMqiRRG1u-2MsSQLbXA",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Science videos"
+            ),
+            RecommendedFeed(
+                title: "Kurzgesagt – In a Nutshell",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsXVk37bltHxD1rDPwtNM8Q",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Science in a nutshell"
+            ),
+            RecommendedFeed(
+                title: "3Blue1Brown",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Math & intuition"
+            ),
+            RecommendedFeed(
+                title: "Fireship",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Fast-paced dev videos"
+            ),
+            RecommendedFeed(
+                title: "Computerphile",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC9-y-6csu5WGm29I7JiwpnA",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Computer science"
+            ),
+            RecommendedFeed(
+                title: "Two Minute Papers",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "AI research highlights"
+            ),
+            RecommendedFeed(
+                title: "The Coding Train",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCvjgXvBlbQiydffZU7m1_aw",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Creative coding"
+            ),
+            RecommendedFeed(
+                title: "freeCodeCamp.org",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC8butISFwT-Wl7EV0hUK0BQ",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Programming tutorials"
+            ),
+            RecommendedFeed(
+                title: "Google Developers",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC_x5XG1OV2P6uZZ5FSM9Ttw",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Developer updates"
+            ),
+            RecommendedFeed(
+                title: "TED",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCAuUUnT6oDeKwE6v1NGQxug",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Ideas worth spreading"
+            ),
+            RecommendedFeed(
+                title: "MIT OpenCourseWare",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCEBb1b_L6zDS3xTUrIALZOw",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Open courses"
+            ),
+            RecommendedFeed(
+                title: "NASA",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCLA_DiR1FfKNvjuUpBHmylQ",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Space & science"
+            ),
+            RecommendedFeed(
+                title: "Linus Tech Tips",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCXuqSBlHAE6Xw-yeJA0Tunw",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Tech & hardware"
+            ),
+            RecommendedFeed(
+                title: "MKBHD",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCBJycsmduvYEL83R_U4JriQ",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Tech reviews"
+            ),
 	        RecommendedFeed(
 	            title: "Linux Do",
 	            url: "https://linux.do/latest.rss",
@@ -657,18 +786,95 @@ private enum RecommendedFeedCatalog {
             kind: .podcast,
             description: "Web dev podcast"
         ),
-        RecommendedFeed(
-            title: "Linux Unplugged",
-            url: "https://linuxunplugged.com/rss",
-            category: "Podcast",
-            kind: .podcast,
-            description: "Linux podcast"
-        ),
 	        RecommendedFeed(
-	            title: "Darknet Diaries",
-	            url: "https://feeds.megaphone.fm/darknetdiaries",
+	            title: "Linux Unplugged",
+	            url: "https://linuxunplugged.com/rss",
 	            category: "Podcast",
 	            kind: .podcast,
+	            description: "Linux podcast"
+	        ),
+	        RecommendedFeed(
+	            title: "Late Night Linux",
+	            url: "https://latenightlinux.com/feed/mp3/",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Linux & open source chat"
+	        ),
+	        RecommendedFeed(
+	            title: "Core Intuition",
+	            url: "https://coreint.org/podcast.xml",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Software design & indie dev"
+	        ),
+	        RecommendedFeed(
+	            title: "The Talk Show",
+	            url: "https://daringfireball.net/thetalkshow/rss",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Tech talk with John Gruber"
+	        ),
+	        RecommendedFeed(
+	            title: "ShopTalk Show",
+	            url: "https://shoptalkshow.com/feed/podcast/",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Front-end web dev podcast"
+	        ),
+	        RecommendedFeed(
+	            title: "Practical AI",
+	            url: "https://changelog.com/practicalai/feed",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Applied AI podcast"
+	        ),
+	        RecommendedFeed(
+	            title: "Software Engineering Daily",
+	            url: "https://softwareengineeringdaily.com/feed/podcast/",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Daily software engineering interviews"
+	        ),
+	        RecommendedFeed(
+	            title: "Hard Fork",
+	            url: "https://feeds.simplecast.com/l2i9YnTd",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Tech & AI from The New York Times"
+	        ),
+	        RecommendedFeed(
+	            title: "The Vergecast",
+	            url: "https://feeds.megaphone.fm/vergecast",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "The Verge podcast"
+	        ),
+	        RecommendedFeed(
+	            title: "Security Now",
+	            url: "https://feeds.twit.tv/sn.xml",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Security news & analysis"
+	        ),
+	        RecommendedFeed(
+	            title: "Python Bytes",
+	            url: "https://pythonbytes.fm/episodes/rss",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Python headlines & news"
+	        ),
+	        RecommendedFeed(
+	            title: "Talk Python To Me",
+	            url: "https://talkpython.fm/episodes/rss",
+	            category: "Podcast",
+	            kind: .podcast,
+	            description: "Python interviews & stories"
+	        ),
+		        RecommendedFeed(
+		            title: "Darknet Diaries",
+		            url: "https://feeds.megaphone.fm/darknetdiaries",
+		            category: "Podcast",
+		            kind: .podcast,
 	            description: "True stories from the dark side of the internet"
 	        ),
 	        RecommendedFeed(
@@ -790,6 +996,7 @@ struct RecommendedFeedsView: View {
         do {
             let kindHint: FeedKind? = switch item.kind {
             case .rss: .rss
+            case .youtube: .youtube
             case .podcast: .podcast
             }
             let feedManager = FeedManager(modelContext: modelContext)
