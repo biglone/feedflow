@@ -91,6 +91,10 @@ struct FeedsListView: View {
                 let feedManager = FeedManager(modelContext: modelContext)
                 await feedManager.refreshAllFeeds()
             }
+            .task(id: feeds.count) {
+                let feedManager = FeedManager(modelContext: modelContext)
+                await feedManager.ensureYouTubeChannelIcons()
+            }
             .task {
                 if feeds.isEmpty && !didShowRecommendedFeeds {
                     showingRecommendedFeeds = true

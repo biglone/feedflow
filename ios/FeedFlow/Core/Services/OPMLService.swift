@@ -112,7 +112,7 @@ enum OPMLService {
     }
 
     private static func groupItemsByCategories(_ items: [Item]) -> CategoryNode {
-        var root = CategoryNode(name: nil, items: [])
+        let root = CategoryNode(name: nil, items: [])
 
         for item in items {
             let categories = item.categories.filter { !$0.isEmpty }

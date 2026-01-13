@@ -329,8 +329,49 @@ class FeedManager: ObservableObject {
 
     // MARK: - YouTube Backfill (Local)
 
+    func ensureYouTubeChannelIcons() async {
+        let descriptor = FetchDescriptor<Feed>()
+        guard let feeds = try? modelContext.fetch(descriptor) else { return }
+        await ensureYouTubeChannelIcons(for: feeds)
+    }
+
+    func ensureYouTubeChannelIcons(for feeds: [Feed]) async {
+        var didUpdate = false
+
+        for feed in feeds where feed.resolvedKind == .youtube {
+            if Task.isCancelled { break }
+            let updated = await ensureYouTubeChannelIcon(for: feed)
+            didUpdate = didUpdate || updated
+        }
+
+        if didUpdate {
+            try? modelContext.save()
+        }
+    }
+
+    private func ensureYouTubeChannelIcon(for feed: Feed) async -> Bool {
+        guard feed.resolvedKind == .youtube else { return false }
+        guard FeedKind.isGenericYouTubeIconURL(feed.iconURL) else { return false }
+        guard let channelId = FeedKind.extractYouTubeChannelId(from: feed.feedURL) else { return false }
+
+        do {
+            guard let channel = try await apiClient.getYouTubeChannel(id: channelId) else { return false }
+            let thumbnailUrl = channel.thumbnailUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !thumbnailUrl.isEmpty else { return false }
+
+            if feed.iconURL != thumbnailUrl {
+                feed.iconURL = thumbnailUrl
+                return true
+            }
+        } catch {
+            return false
+        }
+
+        return false
+    }
+
     func loadMoreYouTubeVideos(for feed: Feed, pageSize: Int = 50) async throws -> Int {
-        guard let channelId = extractYouTubeChannelId(from: feed.feedURL) else { return 0 }
+        guard let channelId = FeedKind.extractYouTubeChannelId(from: feed.feedURL) else { return 0 }
 
         let reachedEndKey = "youtubeVideosReachedEnd.\(channelId)"
         if UserDefaults.standard.bool(forKey: reachedEndKey) {
@@ -388,15 +429,6 @@ class FeedManager: ObservableObject {
         }
 
         return insertedCount
-    }
-
-    private func extractYouTubeChannelId(from feedUrl: String) -> String? {
-        guard let url = URL(string: feedUrl) else { return nil }
-        guard (url.host ?? "").contains("youtube.com") else { return nil }
-        guard url.path.contains("/feeds/videos.xml") else { return nil }
-
-        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        return components?.queryItems?.first(where: { $0.name == "channel_id" })?.value
     }
 
     private func parseYouTubeDate(_ value: String) -> Date? {

@@ -41,6 +41,32 @@ enum FeedKind: String, CaseIterable, Identifiable, Hashable {
         return host.contains("youtube.com") && path.contains("/feeds/videos.xml")
     }
 
+    static func extractYouTubeChannelId(from feedURLString: String) -> String? {
+        guard let url = URL(string: feedURLString) else { return nil }
+        guard (url.host ?? "").lowercased().contains("youtube.com") else { return nil }
+        guard url.path.lowercased().contains("/feeds/videos.xml") else { return nil }
+
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        return components?.queryItems?.first(where: { $0.name == "channel_id" })?.value
+    }
+
+    static func isGenericYouTubeIconURL(_ value: String?) -> Bool {
+        let normalized = (value ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        guard !normalized.isEmpty else { return true }
+
+        if normalized.contains("youtube.com/favicon") {
+            return true
+        }
+
+        if normalized.contains("youtube.com/s/desktop") && normalized.contains("favicon") {
+            return true
+        }
+
+        return false
+    }
+
     static func isAudioEnclosureURL(_ urlString: String?) -> Bool {
         guard let urlString, let url = URL(string: urlString) else { return false }
         let ext = url.pathExtension.lowercased()
