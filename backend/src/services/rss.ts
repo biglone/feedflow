@@ -1,6 +1,6 @@
 import Parser from "rss-parser";
 import { ProxyAgent, fetch as undiciFetch, type Response as UndiciResponse } from "undici";
-import { resolveChannelUrl } from "./youtube.js";
+import { getChannelInfo, resolveChannelUrl } from "./youtube.js";
 
 const parser = new Parser({
   customFields: {
@@ -53,6 +53,21 @@ function isYouTubeUrl(url: string): boolean {
     );
   } catch {
     return false;
+  }
+}
+
+function extractYouTubeChannelIdFromFeedUrl(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    const host = urlObj.hostname.toLowerCase();
+    const path = urlObj.pathname.toLowerCase();
+
+    if (!host.includes("youtube.com")) return null;
+    if (!path.includes("/feeds/videos.xml")) return null;
+
+    return urlObj.searchParams.get("channel_id");
+  } catch {
+    return null;
   }
 }
 
@@ -137,6 +152,19 @@ export async function fetchAndParseFeed(url: string): Promise<ParsedFeed> {
       const siteUrl = new URL(feed.link);
       iconUrl = `${siteUrl.origin}/favicon.ico`;
     } catch {}
+  }
+
+  const channelId = extractYouTubeChannelIdFromFeedUrl(url);
+  if (channelId && process.env.YOUTUBE_API_KEY) {
+    try {
+      const channel = await getChannelInfo(channelId);
+      const thumbnailUrl = channel?.thumbnailUrl?.trim();
+      if (thumbnailUrl) {
+        iconUrl = thumbnailUrl;
+      }
+    } catch (error) {
+      console.warn("Failed to fetch YouTube channel icon:", error);
+    }
   }
 
   return {

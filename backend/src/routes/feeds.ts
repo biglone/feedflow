@@ -182,7 +182,7 @@ feedsRouter.post("/:id/refresh", async (c) => {
 
   await db
     .update(feeds)
-    .set({ lastFetchedAt: new Date() })
+    .set({ lastFetchedAt: new Date(), iconUrl: parsedFeed.iconUrl ?? feed.iconUrl })
     .where(eq(feeds.id, feedId));
 
   return c.json({ newArticlesCount: newArticles.length });
