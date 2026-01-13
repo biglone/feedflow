@@ -22,7 +22,7 @@ enum APIError: Error, LocalizedError {
         case .invalidResponse:
             return "Invalid server response"
         case .unauthorized:
-            return "Please sign in to continue"
+            return "Please sign in to FeedFlow (Settings → Account) to continue"
         case .serverError(let message):
             return message
         case .networkError(let error):
@@ -58,6 +58,17 @@ actor APIClient {
         #if DEBUG
         UserDefaults.standard.register(defaults: ["useLocalAPI": false])
         #endif
+
+        let streamToken =
+            (Bundle.main.object(forInfoDictionaryKey: "FeedFlowStreamProxyAccessToken") as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !streamToken.isEmpty {
+            let existing = (UserDefaults.standard.string(forKey: "streamProxyAccessToken") ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if existing.isEmpty {
+                UserDefaults.standard.set(streamToken, forKey: "streamProxyAccessToken")
+            }
+        }
 
         self.decoder = JSONDecoder()
         self.decoder.dateDecodingStrategy = .iso8601
@@ -125,6 +136,16 @@ actor APIClient {
         #endif
 
         if httpResponse.statusCode == 401 {
+            if let errorResponse = try? decoder.decode(ErrorResponse.self, from: data) {
+                let message = errorResponse.error.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !message.isEmpty {
+                    let normalized = message.lowercased()
+                    if normalized.contains("token") || normalized.contains("unauthorized") || normalized.contains("expired") {
+                        throw APIError.unauthorized
+                    }
+                    throw APIError.serverError(message)
+                }
+            }
             throw APIError.unauthorized
         }
 
@@ -475,6 +496,12 @@ actor APIClient {
     }
 
     func getYouTubeStreamUrls(videoId: String, type: String = "both") async throws -> YouTubeStreamResponse {
+        var extraHeaders: [String: String] = [:]
+        let streamProxyToken = UserDefaults.standard.string(forKey: "streamProxyAccessToken") ?? ""
+        if !streamProxyToken.isEmpty {
+            extraHeaders["X-FeedFlow-Stream-Token"] = streamProxyToken
+        }
+
         #if DEBUG
         if UserDefaults.standard.bool(forKey: "enableNetworkDebugLogs") {
             AppLog.player.debug(
@@ -485,7 +512,8 @@ actor APIClient {
 
         do {
             let response: YouTubeStreamResponse = try await request(
-                endpoint: "/youtube/stream/\(videoId)?type=\(type)"
+                endpoint: "/youtube/stream/\(videoId)?type=\(type)",
+                headers: extraHeaders
             )
             #if DEBUG
             if UserDefaults.standard.bool(forKey: "enableNetworkDebugLogs") {

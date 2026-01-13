@@ -127,10 +127,17 @@ struct VideoPlayerView: View {
                             .foregroundStyle(.gray)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
-                        Button("Retry") {
-                            Task { await loadVideo() }
+                        if let apiError = error as? APIError, case .unauthorized = apiError {
+                            Button("Sign In") {
+                                dismiss()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        } else {
+                            Button("Retry") {
+                                Task { await loadVideo() }
+                            }
+                            .buttonStyle(.borderedProminent)
                         }
-                        .buttonStyle(.borderedProminent)
                         Button("Copy Debug Info") {
                             copyDebugInfo(error: error)
                         }

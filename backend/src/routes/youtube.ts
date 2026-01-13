@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { ProxyAgent, fetch as undiciFetch, type HeadersInit } from "undici";
@@ -56,6 +56,7 @@ const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 const youtubeRouter = new Hono();
 
 const streamProxySecret = process.env.STREAM_PROXY_SECRET;
+const streamProxyAccessToken = process.env.STREAM_PROXY_ACCESS_TOKEN;
 const streamProxyTtlSeconds = parseInt(
   process.env.STREAM_PROXY_TTL_SECONDS || "21600",
   10
@@ -64,6 +65,17 @@ const streamProxyClockSkewSeconds = parseInt(
   process.env.STREAM_PROXY_CLOCK_SKEW_SECONDS || "30",
   10
 );
+
+async function authorizeStreamRequest(c: Context): Promise<void> {
+  if (!streamProxySecret && !streamProxyAccessToken) return;
+
+  if (streamProxyAccessToken) {
+    const provided = c.req.header("x-feedflow-stream-token");
+    if (provided && provided === streamProxyAccessToken) return;
+  }
+
+  await getUserIdFromContext(c);
+}
 
 // Google OAuth2 configuration
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -325,8 +337,8 @@ youtubeRouter.get(
     const { type } = c.req.valid("query");
 
     try {
-      // Minting signed /proxy URLs should be restricted to authenticated app users.
-      await getUserIdFromContext(c);
+      // Minting signed /proxy URLs should be restricted (JWT or stream access token).
+      await authorizeStreamRequest(c);
 
       let videoId = requestedVideoId;
       let streams: Awaited<ReturnType<typeof getStreamUrls>>;

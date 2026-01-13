@@ -259,7 +259,7 @@ struct AccountView: View {
 
     private var isFormValid: Bool {
         if isSignUp {
-            return isEmailValid && password.count >= 6 && password == confirmPassword
+            return isEmailValid && password.count >= 8 && password == confirmPassword
         } else {
             return isEmailValid && !password.isEmpty
         }
@@ -284,7 +284,7 @@ struct AccountView: View {
                     }
                 } footer: {
                     if isSignUp {
-                        Text("Password must be at least 6 characters")
+                        Text("Password must be at least 8 characters")
                     }
                 }
 
