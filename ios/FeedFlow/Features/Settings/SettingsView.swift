@@ -1,8 +1,10 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Feed.title) private var feeds: [Feed]
     @StateObject private var authManager = AuthManager.shared
     @State private var isSyncing = false
     @State private var lastSyncTime: Date?
@@ -20,6 +22,18 @@ struct SettingsView: View {
     @State private var showingImportSheet = false
     @State private var showingClearDataAlert = false
     @State private var showingLogoutAlert = false
+
+    @State private var exportDocument = OPMLDocument(text: "")
+    @State private var exportFilename = "feedflow-subscriptions.opml"
+
+    @State private var isImportingOPML = false
+    @State private var importProgress = 0
+    @State private var importTotal = 0
+    @State private var importTask: Task<Void, Never>?
+
+    @State private var showingOPMLAlert = false
+    @State private var opmlAlertTitle = "OPML"
+    @State private var opmlAlertMessage = ""
 
     private var appVersionString: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
@@ -131,16 +145,18 @@ struct SettingsView: View {
                 // Data Section
                 Section("Data") {
                     Button {
-                        showingExportSheet = true
+                        prepareOPMLExport()
                     } label: {
                         Label("Export OPML", systemImage: "square.and.arrow.up")
                     }
+                    .disabled(feeds.isEmpty || isImportingOPML)
 
                     Button {
                         showingImportSheet = true
                     } label: {
                         Label("Import OPML", systemImage: "square.and.arrow.down")
                     }
+                    .disabled(isImportingOPML)
 
                     Button(role: .destructive) {
                         showingClearDataAlert = true
@@ -196,6 +212,36 @@ struct SettingsView: View {
             .sheet(isPresented: $showingAccountSheet) {
                 AccountView()
             }
+            .fileExporter(
+                isPresented: $showingExportSheet,
+                document: exportDocument,
+                contentType: .feedFlowOPML,
+                defaultFilename: exportFilename
+            ) { result in
+                if case .failure(let error) = result, !isUserCancelled(error) {
+                    opmlAlertTitle = "Export Failed"
+                    opmlAlertMessage = error.localizedDescription
+                    showingOPMLAlert = true
+                }
+            }
+            .fileImporter(
+                isPresented: $showingImportSheet,
+                allowedContentTypes: [.feedFlowOPML, .xml, .plainText],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    guard let url = urls.first else { return }
+                    importTask?.cancel()
+                    importTask = Task { await importOPML(from: url) }
+                case .failure(let error):
+                    if !isUserCancelled(error) {
+                        opmlAlertTitle = "Import Failed"
+                        opmlAlertMessage = error.localizedDescription
+                        showingOPMLAlert = true
+                    }
+                }
+            }
             .alert("Clear All Data", isPresented: $showingClearDataAlert) {
                 Button("Cancel", role: .cancel) {}
                 Button("Clear", role: .destructive) {
@@ -212,6 +258,33 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("Are you sure you want to sign out?")
+            }
+            .alert(opmlAlertTitle, isPresented: $showingOPMLAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(opmlAlertMessage)
+            }
+            .overlay {
+                if isImportingOPML {
+                    ZStack {
+                        Color.black.opacity(0.25).ignoresSafeArea()
+                        VStack(spacing: 12) {
+                            ProgressView(value: Double(importProgress), total: Double(max(importTotal, 1)))
+                                .frame(width: 240)
+                            Text("Importing \(importProgress)/\(importTotal)")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                            Button("Cancel") {
+                                importTask?.cancel()
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        .padding(16)
+                        .background(.regularMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .shadow(radius: 12)
+                    }
+                }
             }
         }
     }
@@ -236,6 +309,126 @@ struct SettingsView: View {
         } catch {
             print("Failed to clear data: \(error)")
         }
+    }
+
+    private func prepareOPMLExport() {
+        let items = feeds.compactMap { feed -> OPMLService.Item? in
+            guard let url = OPMLService.normalizeURLString(feed.feedURL) else { return nil }
+            let categories = feed.folder.map { [$0.name] } ?? []
+            return OPMLService.Item(
+                title: feed.title,
+                xmlUrl: url,
+                htmlUrl: feed.siteURL,
+                kind: feed.kind,
+                categories: categories
+            )
+        }
+
+        exportDocument = OPMLDocument(text: OPMLService.generate(items: items))
+        exportFilename = "feedflow-subscriptions-\(dateStampForFilename()).opml"
+        showingExportSheet = true
+    }
+
+    @MainActor
+    private func importOPML(from url: URL) async {
+        isImportingOPML = true
+        importProgress = 0
+        importTotal = 0
+        defer {
+            isImportingOPML = false
+            importTask = nil
+        }
+
+        let didStartAccessing = url.startAccessingSecurityScopedResource()
+        defer {
+            if didStartAccessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let parsedItems = try OPMLService.parse(data: data)
+
+            var seen = Set(feeds.compactMap { OPMLService.normalizeURLString($0.feedURL) })
+            let feedManager = FeedManager(modelContext: modelContext)
+
+            let normalizedItems: [OPMLService.Item] = parsedItems.compactMap { item in
+                guard let normalized = OPMLService.normalizeURLString(item.xmlUrl) else { return nil }
+                return OPMLService.Item(
+                    title: item.title,
+                    xmlUrl: normalized,
+                    htmlUrl: item.htmlUrl,
+                    kind: item.kind,
+                    categories: item.categories
+                )
+            }
+
+            importTotal = normalizedItems.count
+
+            var imported = 0
+            var skipped = 0
+            var failed = 0
+
+            for item in normalizedItems {
+                if Task.isCancelled {
+                    break
+                }
+
+                if seen.contains(item.xmlUrl) {
+                    skipped += 1
+                    importProgress += 1
+                    continue
+                }
+                seen.insert(item.xmlUrl)
+
+                do {
+                    let kindHint = item.kind.flatMap { FeedKind(rawValue: $0) }
+                    _ = try await feedManager.addFeed(url: item.xmlUrl, kindHint: kindHint)
+                    imported += 1
+                } catch {
+                    if isDuplicateFeedError(error) {
+                        skipped += 1
+                    } else {
+                        failed += 1
+                    }
+                }
+
+                importProgress += 1
+            }
+
+            let cancelled = Task.isCancelled
+            opmlAlertTitle = cancelled ? "Import Cancelled" : "Import Complete"
+            opmlAlertMessage = "Imported \(imported), skipped \(skipped), failed \(failed)."
+            showingOPMLAlert = true
+        } catch {
+            if Task.isCancelled { return }
+            opmlAlertTitle = "Import Failed"
+            opmlAlertMessage = error.localizedDescription
+            showingOPMLAlert = true
+        }
+    }
+
+    private func dateStampForFilename(date: Date = Date()) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        return formatter.string(from: date)
+    }
+
+    private func isDuplicateFeedError(_ error: Error) -> Bool {
+        guard let apiError = error as? APIError else { return false }
+        if case .serverError(let message) = apiError {
+            let normalized = message.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            return normalized.contains("feed already exists") || normalized.contains("already exists")
+        }
+        return false
+    }
+
+    private func isUserCancelled(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.domain == NSCocoaErrorDomain && nsError.code == CocoaError.Code.userCancelled.rawValue
     }
 }
 
