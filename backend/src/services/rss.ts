@@ -1,4 +1,5 @@
 import Parser from "rss-parser";
+import { ProxyAgent, fetch as undiciFetch, type Response as UndiciResponse } from "undici";
 import { resolveChannelUrl } from "./youtube.js";
 
 const parser = new Parser({
@@ -10,6 +11,35 @@ const parser = new Parser({
     ],
   },
 });
+
+// Proxy configuration (for regions where YouTube/RSS hosts need a proxy)
+const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY;
+const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
+
+async function fetchText(url: string): Promise<string> {
+  let response: UndiciResponse;
+  try {
+    response = await undiciFetch(url, {
+      dispatcher: proxyAgent,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+      },
+      redirect: "follow",
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error: any) {
+    const message = error?.message ? String(error.message) : String(error);
+    throw new Error(`Failed to fetch URL: ${message}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch feed (${response.status})`);
+  }
+
+  return response.text();
+}
 
 // Check if URL is a YouTube URL
 function isYouTubeUrl(url: string): boolean {
@@ -62,7 +92,8 @@ interface ParsedFeed {
 }
 
 export async function fetchAndParseFeed(url: string): Promise<ParsedFeed> {
-  const feed = await parser.parseURL(url);
+  const xml = await fetchText(url);
+  const feed = await parser.parseString(xml);
 
   const articles: ParsedArticle[] = (feed.items || []).map((item) => {
     const guid = item.guid || item.link || item.title || crypto.randomUUID();
@@ -127,8 +158,7 @@ export async function discoverFeedUrl(websiteUrl: string): Promise<string | null
   }
 
   try {
-    const response = await fetch(websiteUrl);
-    const html = await response.text();
+    const html = await fetchText(websiteUrl);
 
     const rssLinkMatch = html.match(
       /<link[^>]+type=["']application\/(rss|atom)\+xml["'][^>]+href=["']([^"']+)["']/i
