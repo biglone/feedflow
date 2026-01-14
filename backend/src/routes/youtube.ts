@@ -49,8 +49,31 @@ function extractYtdlpErrorMessage(error: unknown): string | undefined {
   return cleaned.slice(0, 2000);
 }
 
+function extractYtdlpErrorText(error: unknown): string | undefined {
+  const anyError = error as any;
+  const candidates = [
+    anyError?.stderr,
+    anyError?.stdout,
+    anyError?.message,
+  ].filter(Boolean);
+
+  if (candidates.length === 0) return undefined;
+
+  return candidates
+    .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
+    .join("\n");
+}
+
 function normalizeErrorMessage(value: string): string {
   return value.toLowerCase().replaceAll("\u2019", "'");
+}
+
+function isYtdlpCookiesInvalidMessage(message: string): boolean {
+  const normalized = normalizeErrorMessage(message);
+  return (
+    normalized.includes("cookies are no longer valid") ||
+    normalized.includes("likely been rotated in the browser")
+  );
 }
 
 function isYouTubeAuthOrBotCheckMessage(message: string): boolean {
@@ -458,10 +481,23 @@ youtubeRouter.get(
       if (error instanceof HTTPException) throw error;
       console.error("Get stream error:", error);
 
+      const ytdlpErrorText = extractYtdlpErrorText(error);
       const ytdlpMessage = extractYtdlpErrorMessage(error);
       const debug =
         c.req.header("x-feedflow-debug") === "1" ||
         c.req.query("debug") === "1";
+
+      if (ytdlpErrorText && isYtdlpCookiesInvalidMessage(ytdlpErrorText)) {
+        const hint =
+          "YouTube cookies are configured but invalid/rotated. Re-export cookies and reinstall (YTDLP_COOKIES_PATH or YTDLP_COOKIES_BASE64), then restart/redeploy.";
+        if (debug && ytdlpMessage) {
+          return c.json(
+            { error: hint, code: "YOUTUBE_COOKIES_INVALID", details: ytdlpMessage },
+            503
+          );
+        }
+        return c.json({ error: hint, code: "YOUTUBE_COOKIES_INVALID" }, 503);
+      }
 
       if (ytdlpMessage && isYouTubeAuthOrBotCheckMessage(ytdlpMessage)) {
         const hint =

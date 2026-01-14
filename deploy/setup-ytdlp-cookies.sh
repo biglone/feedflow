@@ -73,4 +73,13 @@ echo "[cookies] updated:   $BACKEND_ENV_FILE"
 systemctl --user restart "$BACKEND_SERVICE"
 systemctl --user --no-pager -n 10 status "$BACKEND_SERVICE" || true
 
+if command -v curl >/dev/null 2>&1; then
+  if curl -sS -m 20 -b "$DEST_COOKIES_PATH" "https://www.youtube.com" 2>/dev/null | grep -q '"LOGGED_IN":true'; then
+    echo "[cookies] verify: YouTube logged-in session detected"
+  else
+    echo "[cookies] warning: YouTube logged-in session not detected; cookies may be incomplete/expired"
+    echo "[cookies] hint: export cookies while logged in to https://www.youtube.com and rerun this script"
+  fi
+fi
+
 echo "[cookies] done"

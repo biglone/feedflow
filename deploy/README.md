@@ -27,6 +27,13 @@
 
 如果 `/api/youtube/stream/*` 返回 “Sign in to confirm you’re not a bot / Please sign in to continue”，需要给 `yt-dlp` 提供 cookies。
 
+### 导出 cookies（推荐 Chrome）
+
+1) 在浏览器里确认你已经登录 YouTube（右上角有头像）。
+2) 安装一个能导出 Netscape `cookies.txt` 的扩展（例如 Chrome 的 `Get cookies.txt LOCALLY`）。
+3) 打开 `https://www.youtube.com`（不要用 `m.youtube.com`），用扩展导出 `cookies.txt`。
+4) 拷贝到服务器（例如放到 `/tmp/cookies.txt`）。
+
 推荐把 cookies 文件保存在主机本地（不要放在仓库目录，也不要提交到 git）：
 
 - 目标路径：`~/.config/feedflow/yt-dlp-cookies.txt`（`chmod 600`）
@@ -37,6 +44,14 @@
 ```bash
 ./deploy/setup-ytdlp-cookies.sh /path/to/cookies.txt
 ```
+
+### 快速验证（不泄露 cookies 内容）
+
+```bash
+curl -s -m 20 -b ~/.config/feedflow/yt-dlp-cookies.txt https://www.youtube.com | rg -q '"LOGGED_IN":true' && echo OK || echo NOT_LOGGED_IN
+```
+
+如果结果是 `NOT_LOGGED_IN`，说明 cookies 很可能未包含有效登录态（或已被轮换失效），需要重新导出并再次运行 `setup-ytdlp-cookies.sh`。
 
 ## 2.5) 初始化数据库（必须）
 
