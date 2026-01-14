@@ -36,6 +36,8 @@ enum APIError: Error, LocalizedError {
 actor APIClient {
     static let shared = APIClient()
 
+    nonisolated private static let didMigrateYouTubeBackendSplitKey = "didMigrateYouTubeBackendSplit.v1"
+
     private var authToken: String?
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
@@ -87,6 +89,8 @@ actor APIClient {
     }
 
     private init() {
+        Self.migrateLegacyBackendOverridesIfNeeded()
+
         #if DEBUG
         UserDefaults.standard.register(defaults: ["useLocalAPI": false])
         #endif
@@ -133,6 +137,32 @@ actor APIClient {
         }
 
         return normalized
+    }
+
+    nonisolated private static func migrateLegacyBackendOverridesIfNeeded() {
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: didMigrateYouTubeBackendSplitKey) {
+            return
+        }
+
+        let apiOverride = defaults.string(forKey: "apiBaseURLOverride")
+        let youTubeOverride = defaults.string(forKey: "youTubeStreamBaseURL")
+
+        guard let normalizedAPI = normalizeBaseURL(apiOverride) else {
+            defaults.set(true, forKey: didMigrateYouTubeBackendSplitKey)
+            return
+        }
+
+        let normalizedYouTube = normalizeBaseURL(youTubeOverride)
+
+        // Older builds used a single "Vercel" switch that pointed the entire app to a `.vercel.app` base URL.
+        // Migrate that config to only affect YouTube requests.
+        if normalizedAPI.contains(".vercel.app"), (normalizedYouTube == nil || normalizedYouTube == normalizedAPI) {
+            defaults.set("", forKey: "apiBaseURLOverride")
+            defaults.set(normalizedAPI, forKey: "youTubeStreamBaseURL")
+        }
+
+        defaults.set(true, forKey: didMigrateYouTubeBackendSplitKey)
     }
 
     private func request<T: Decodable>(
