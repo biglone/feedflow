@@ -12,11 +12,11 @@ struct SettingsView: View {
     @AppStorage("markAsReadOnScroll") private var markAsReadOnScroll: Bool = false
     @AppStorage("openLinksInApp") private var openLinksInApp: Bool = true
     @AppStorage("fontSize") private var fontSize: Double = 17
+    @AppStorage("apiBaseURLOverride") private var apiBaseURLOverride: String = ""
+    @AppStorage("youTubeStreamBaseURL") private var youTubeStreamBaseURL: String = ""
     #if DEBUG
     @AppStorage("useLocalAPI") private var useLocalAPI: Bool = false
     @AppStorage("enableNetworkDebugLogs") private var enableNetworkDebugLogs: Bool = false
-    @AppStorage("apiBaseURLOverride") private var apiBaseURLOverride: String = ""
-    @AppStorage("youTubeStreamBaseURL") private var youTubeStreamBaseURL: String = ""
     #endif
 
     @State private var showingAccountSheet = false
@@ -36,6 +36,36 @@ struct SettingsView: View {
     @State private var showingOPMLAlert = false
     @State private var opmlAlertTitle = "OPML"
     @State private var opmlAlertMessage = ""
+
+    private enum BackendPreset: String, CaseIterable, Identifiable {
+        case `default`
+        case vercel
+        #if DEBUG
+        case local
+        #endif
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .default:
+                return "Default"
+            case .vercel:
+                return "Vercel"
+            #if DEBUG
+            case .local:
+                return "Local"
+            #endif
+            }
+        }
+    }
+
+    private var backendPresetBinding: Binding<BackendPreset> {
+        Binding(
+            get: { inferBackendPreset() },
+            set: { applyBackendPreset($0) }
+        )
+    }
 
     private var appVersionString: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
@@ -142,6 +172,20 @@ struct SettingsView: View {
                         Text("2 hours").tag(120)
                         Text("Manual only").tag(0)
                     }
+                }
+
+                // Server Section
+                Section("Backend") {
+                    Picker("Server", selection: backendPresetBinding) {
+                        ForEach(BackendPreset.allCases) { preset in
+                            Text(preset.title).tag(preset)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Text("Use Vercel if YouTube playback fails on your local server.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 // Data Section
@@ -464,6 +508,45 @@ struct SettingsView: View {
     private func isUserCancelled(_ error: Error) -> Bool {
         let nsError = error as NSError
         return nsError.domain == NSCocoaErrorDomain && nsError.code == CocoaError.Code.userCancelled.rawValue
+    }
+
+    private func inferBackendPreset() -> BackendPreset {
+        let base = APIClient.shared.currentBaseURL().lowercased()
+
+        if base.contains("feedflow-silk.vercel.app") {
+            return .vercel
+        }
+
+        #if DEBUG
+        if base.contains("172.16.1.16:3000") {
+            return .local
+        }
+        #endif
+
+        return .default
+    }
+
+    private func applyBackendPreset(_ preset: BackendPreset) {
+        switch preset {
+        case .default:
+            apiBaseURLOverride = ""
+            youTubeStreamBaseURL = ""
+            #if DEBUG
+            useLocalAPI = false
+            #endif
+        case .vercel:
+            apiBaseURLOverride = "https://feedflow-silk.vercel.app/api"
+            youTubeStreamBaseURL = "https://feedflow-silk.vercel.app/api"
+            #if DEBUG
+            useLocalAPI = false
+            #endif
+        #if DEBUG
+        case .local:
+            apiBaseURLOverride = "http://172.16.1.16:3000/api"
+            youTubeStreamBaseURL = "http://172.16.1.16:3000/api"
+            useLocalAPI = false
+        #endif
+        }
     }
 }
 
