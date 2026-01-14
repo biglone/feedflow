@@ -267,7 +267,8 @@ struct VideoPlayerView: View {
         let streamType = mode
 
         let baseURL = apiClient.currentBaseURL()
-        let streamEndpoint = "\(baseURL)/youtube/stream/\(videoId)?type=\(streamType)"
+        let youTubeStreamBaseURL = apiClient.currentYouTubeStreamBaseURL()
+        let streamEndpoint = "\(youTubeStreamBaseURL)/youtube/stream/\(videoId)?type=\(streamType)"
 
         return """
         FeedFlow Debug Info
@@ -275,6 +276,7 @@ struct VideoPlayerView: View {
         app=\(version) (\(build))
         device=\(device)
         baseURL=\(baseURL)
+        youTubeStreamBaseURL=\(youTubeStreamBaseURL)
         streamEndpoint=\(streamEndpoint)
         videoId=\(videoId)
         mode=\(mode)

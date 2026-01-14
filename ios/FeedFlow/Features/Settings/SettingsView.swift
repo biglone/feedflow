@@ -15,6 +15,8 @@ struct SettingsView: View {
     #if DEBUG
     @AppStorage("useLocalAPI") private var useLocalAPI: Bool = false
     @AppStorage("enableNetworkDebugLogs") private var enableNetworkDebugLogs: Bool = false
+    @AppStorage("apiBaseURLOverride") private var apiBaseURLOverride: String = ""
+    @AppStorage("youTubeStreamBaseURL") private var youTubeStreamBaseURL: String = ""
     #endif
 
     @State private var showingAccountSheet = false
@@ -200,6 +202,39 @@ struct SettingsView: View {
                     Text("Connect to http://172.16.1.16:3000/api instead of the deployed backend.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+
+                    Text("Current API: \(APIClient.shared.currentBaseURL())")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    TextField("API Base URL override (e.g. feedflow-silk.vercel.app)", text: $apiBaseURLOverride)
+                        .textContentType(.URL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    Text("YouTube stream base: \(APIClient.shared.currentYouTubeStreamBaseURL())")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    TextField("YouTube stream URL override (e.g. feedflow-silk.vercel.app)", text: $youTubeStreamBaseURL)
+                        .textContentType(.URL)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+
+                    Button("Use Vercel (feedflow-silk.vercel.app)") {
+                        useLocalAPI = false
+                        apiBaseURLOverride = "https://feedflow-silk.vercel.app/api"
+                        youTubeStreamBaseURL = "https://feedflow-silk.vercel.app/api"
+                    }
+
+                    Button("Reset Overrides", role: .destructive) {
+                        apiBaseURLOverride = ""
+                        youTubeStreamBaseURL = ""
+                    }
+                    .disabled(apiBaseURLOverride.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                              && youTubeStreamBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                     Toggle("Enable Network Debug Logs", isOn: $enableNetworkDebugLogs)
                     Text("Print request/response logs to the Xcode console (and Console.app).")

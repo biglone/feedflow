@@ -20,6 +20,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>FeedFlowStreamProxyAccessToken</key>
 	<string>$(FEEDFLOW_STREAM_PROXY_ACCESS_TOKEN)</string>
+	<key>FeedFlowAPIBaseURL</key>
+	<string>$(FEEDFLOW_API_BASE_URL)</string>
+	<key>FeedFlowYouTubeStreamBaseURL</key>
+	<string>$(FEEDFLOW_YOUTUBE_STREAM_BASE_URL)</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

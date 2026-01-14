@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -10,6 +11,7 @@ struct ContentView: View {
     @State private var selectedTab: Tab = .timeline
     @State private var showingFullPlayer = false
     @State private var isSyncing = false
+    @State private var tabBarVisibleHeight: CGFloat = 0
     @StateObject private var playerManager = PlayerManager.shared
 
     enum Tab {
@@ -45,6 +47,7 @@ struct ContentView: View {
                 }
                 .tag(Tab.settings)
         }
+        .background(TabBarVisibleHeightReader(height: $tabBarVisibleHeight).allowsHitTesting(false))
         .onChange(of: authManager.isLoggedIn) { _, isLoggedIn in
             if isLoggedIn {
                 Task {
@@ -76,14 +79,22 @@ struct ContentView: View {
     private func tabRoot<Content: View>(_ content: Content) -> some View {
         content.safeAreaInset(edge: .bottom, spacing: 0) {
             if playerManager.currentVideoId != nil {
-                MiniPlayerView(
-                    onTap: {
-                        showingFullPlayer = true
-                    },
-                    onDismiss: {
-                        playerManager.stop()
+                VStack(spacing: 0) {
+                    MiniPlayerView(
+                        onTap: {
+                            showingFullPlayer = true
+                        },
+                        onDismiss: {
+                            playerManager.stop()
+                        }
+                    )
+
+                    if tabBarVisibleHeight > 0 {
+                        Color.clear
+                            .frame(height: tabBarVisibleHeight)
+                            .allowsHitTesting(false)
                     }
-                )
+                }
             }
         }
     }
@@ -112,6 +123,32 @@ struct SyncIndicatorView: View {
         .background(.ultraThinMaterial)
         .clipShape(Capsule())
         .padding(.top, 8)
+    }
+}
+
+struct TabBarVisibleHeightReader: UIViewControllerRepresentable {
+    @Binding var height: CGFloat
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        let controller = UIViewController()
+        controller.view.backgroundColor = .clear
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        DispatchQueue.main.async {
+            guard let tabBar = uiViewController.tabBarController?.tabBar else {
+                height = 0
+                return
+            }
+
+            let safeBottom = uiViewController.view.window?.safeAreaInsets.bottom ?? uiViewController.view.safeAreaInsets.bottom
+            let visibleHeight = max(tabBar.frame.height - safeBottom, 0)
+
+            if abs(height - visibleHeight) > 0.5 {
+                height = visibleHeight
+            }
+        }
     }
 }
 

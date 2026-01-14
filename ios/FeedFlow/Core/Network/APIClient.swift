@@ -42,6 +42,18 @@ actor APIClient {
 
     // Debug builds can switch between remote and local API endpoints via the Settings toggle.
     nonisolated private var baseURL: String {
+        if let storedOverride = Self.normalizeBaseURL(
+            UserDefaults.standard.string(forKey: "apiBaseURLOverride")
+        ) {
+            return storedOverride
+        }
+
+        if let plistOverride = Self.normalizeBaseURL(
+            Bundle.main.object(forInfoDictionaryKey: "FeedFlowAPIBaseURL") as? String
+        ) {
+            return plistOverride
+        }
+
         #if DEBUG
         if UserDefaults.standard.bool(forKey: "useLocalAPI") {
             return "http://172.16.1.16:3000/api"
@@ -50,8 +62,28 @@ actor APIClient {
         return "https://feedflow.biglone.tech/api"
     }
 
+    nonisolated private var youTubeStreamBaseURL: String {
+        if let storedOverride = Self.normalizeBaseURL(
+            UserDefaults.standard.string(forKey: "youTubeStreamBaseURL")
+        ) {
+            return storedOverride
+        }
+
+        if let plistOverride = Self.normalizeBaseURL(
+            Bundle.main.object(forInfoDictionaryKey: "FeedFlowYouTubeStreamBaseURL") as? String
+        ) {
+            return plistOverride
+        }
+
+        return baseURL
+    }
+
     nonisolated func currentBaseURL() -> String {
         baseURL
+    }
+
+    nonisolated func currentYouTubeStreamBaseURL() -> String {
+        youTubeStreamBaseURL
     }
 
     private init() {
@@ -84,13 +116,34 @@ actor APIClient {
         return authToken
     }
 
+    nonisolated private static func normalizeBaseURL(_ raw: String?) -> String? {
+        let trimmed = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let withScheme: String
+        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") {
+            withScheme = trimmed
+        } else {
+            withScheme = "https://\(trimmed)"
+        }
+
+        var normalized = withScheme.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        if !normalized.lowercased().hasSuffix("/api") {
+            normalized += "/api"
+        }
+
+        return normalized
+    }
+
     private func request<T: Decodable>(
         endpoint: String,
         method: String = "GET",
         body: Encodable? = nil,
-        headers extraHeaders: [String: String] = [:]
+        headers extraHeaders: [String: String] = [:],
+        baseURLOverride: String? = nil
     ) async throws -> T {
-        guard let url = URL(string: "\(baseURL)\(endpoint)") else {
+        let base = baseURLOverride ?? baseURL
+        guard let url = URL(string: "\(base)\(endpoint)") else {
             throw APIError.invalidURL
         }
 
@@ -513,7 +566,8 @@ actor APIClient {
         do {
             let response: YouTubeStreamResponse = try await request(
                 endpoint: "/youtube/stream/\(videoId)?type=\(type)",
-                headers: extraHeaders
+                headers: extraHeaders,
+                baseURLOverride: youTubeStreamBaseURL
             )
             #if DEBUG
             if UserDefaults.standard.bool(forKey: "enableNetworkDebugLogs") {
