@@ -66,7 +66,10 @@ const streamProxyClockSkewSeconds = parseInt(
   10
 );
 
-const youtubeStreamUrlMode = (process.env.YOUTUBE_STREAM_URL_MODE || "proxy")
+const youtubeStreamUrlMode = (
+  (process.env.YOUTUBE_STREAM_URL_MODE || "").trim() ||
+  (process.env.VERCEL || process.env.VERCEL_ENV ? "direct" : "proxy")
+)
   .trim()
   .toLowerCase();
 const youtubeStreamUseDirectUrls = youtubeStreamUrlMode === "direct";
