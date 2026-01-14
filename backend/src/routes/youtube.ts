@@ -439,6 +439,14 @@ youtubeRouter.get(
         );
       }
 
+      if (
+        ytdlpMessage &&
+        (/Failed to download yt-dlp/i.test(ytdlpMessage) ||
+          /Unsupported platform for yt-dlp binary/i.test(ytdlpMessage))
+      ) {
+        return c.json({ error: ytdlpMessage, code: "STREAM_BACKEND_UNAVAILABLE" }, 503);
+      }
+
       const debug =
         c.req.header("x-feedflow-debug") === "1" ||
         c.req.query("debug") === "1";
