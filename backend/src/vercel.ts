@@ -4,7 +4,7 @@ import type { Context } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { HTTPException } from "hono/http-exception";
-import { handle } from "hono/vercel";
+import { getRequestListener } from "@hono/node-server";
 import { authRouter } from "./routes/auth.js";
 import { feedsRouter } from "./routes/feeds.js";
 import { articlesRouter } from "./routes/articles.js";
@@ -19,7 +19,7 @@ app.use(
   cors({
     origin: "*",
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "X-FeedFlow-Stream-Token"],
   })
 );
 
@@ -53,5 +53,4 @@ app.onError((err, c) => {
 
 app.notFound((c) => c.json({ error: "Not Found" }, 404));
 
-export default handle(app);
-
+export default getRequestListener(app.fetch);
