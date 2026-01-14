@@ -23,6 +23,21 @@
 
 - `~/workspace/feedflow-prod/backend/.env`（参考 `backend/.env.example`）
 
+## 2.1) 配置 YouTube cookies（解决 bot-check）
+
+如果 `/api/youtube/stream/*` 返回 “Sign in to confirm you’re not a bot / Please sign in to continue”，需要给 `yt-dlp` 提供 cookies。
+
+推荐把 cookies 文件保存在主机本地（不要放在仓库目录，也不要提交到 git）：
+
+- 目标路径：`~/.config/feedflow/yt-dlp-cookies.txt`（`chmod 600`）
+- 在 `~/.config/feedflow/backend.env` 增加：`YTDLP_COOKIES_PATH=...`
+
+提供了一个辅助脚本：
+
+```bash
+./deploy/setup-ytdlp-cookies.sh /path/to/cookies.txt
+```
+
 ## 2.5) 初始化数据库（必须）
 
 首次部署或更新数据表后，需要执行一次迁移：
