@@ -82,4 +82,43 @@ if command -v curl >/dev/null 2>&1; then
   fi
 fi
 
+if command -v curl >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
+  verify_video_id="${FEEDFLOW_YTDLP_VERIFY_VIDEO_ID:-dQw4w9WgXcQ}"
+  tmp_html="$(mktemp)"
+  if curl -sS -m 30 -b "$DEST_COOKIES_PATH" "https://www.youtube.com/watch?v=${verify_video_id}" -o "$tmp_html" 2>/dev/null; then
+    status_and_reason="$(
+      node - "$tmp_html" <<'NODE' || true
+const fs = require('fs');
+const path = process.argv[2];
+const html = fs.readFileSync(path, 'utf8');
+let match = html.match(/ytInitialPlayerResponse\\s*=\\s*(\\{.+?\\});/s);
+if (!match) match = html.match(/\"ytInitialPlayerResponse\"\\s*:\\s*(\\{.+?\\})\\s*,\\s*\"ytInitialData\"/s);
+if (!match) {
+  process.exit(2);
+}
+const data = JSON.parse(match[1]);
+const ps = data.playabilityStatus || {};
+const status = ps.status || '';
+const reason = ps.reason || '';
+process.stdout.write(status + \"\\n\" + reason);
+NODE
+    )"
+    status="$(echo "$status_and_reason" | head -n 1 | tr -d '\r')"
+    reason="$(echo "$status_and_reason" | tail -n +2 | tr -d '\r')"
+
+    if [[ "$status" == "OK" ]]; then
+      echo "[cookies] verify: video playability OK (${verify_video_id})"
+    else
+      echo "[cookies] warning: video playability is not OK (${verify_video_id}) status=${status:-unknown}"
+      if [[ -n "$reason" ]]; then
+        echo "[cookies] details: $reason"
+      fi
+      echo "[cookies] hint: this usually means the current proxy/VPN exit IP is flagged; switch to a different exit (prefer residential) or solve the bot-check in a browser using the same exit IP, then re-export cookies"
+    fi
+  else
+    echo "[cookies] warning: failed to fetch YouTube watch page for verification; skipping playability check"
+  fi
+  rm -f "$tmp_html" || true
+fi
+
 echo "[cookies] done"

@@ -500,8 +500,14 @@ youtubeRouter.get(
       }
 
       if (ytdlpMessage && isYouTubeAuthOrBotCheckMessage(ytdlpMessage)) {
-        const hint =
-          "YouTube blocked this server (bot check). Configure yt-dlp cookies (YTDLP_COOKIES_PATH or YTDLP_COOKIES_BASE64) on the backend and restart/redeploy.";
+        const hasCookies =
+          Boolean(process.env.YTDLP_COOKIES_PATH?.trim()) ||
+          Boolean(process.env.YTDLP_COOKIES_BASE64?.trim()) ||
+          Boolean(process.env.YTDLP_COOKIES?.trim());
+
+        const hint = hasCookies
+          ? "YouTube blocked this server (bot check). Cookies are configured, but YouTube still requires verification. This is usually caused by the server/proxy exit IP reputation. Try switching to a different proxy/VPN exit (prefer residential) or complete the 'confirm you're not a bot' challenge in a browser using the same exit IP, then re-export cookies and restart/redeploy."
+          : "YouTube blocked this server (bot check). Configure yt-dlp cookies (YTDLP_COOKIES_PATH or YTDLP_COOKIES_BASE64) on the backend and restart/redeploy.";
         if (debug) {
           return c.json(
             { error: hint, code: "YOUTUBE_BOT_CHECK", details: ytdlpMessage },
