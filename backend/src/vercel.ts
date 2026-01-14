@@ -1,0 +1,57 @@
+import "dotenv/config";
+import { Hono } from "hono";
+import type { Context } from "hono";
+import { cors } from "hono/cors";
+import { logger } from "hono/logger";
+import { HTTPException } from "hono/http-exception";
+import { handle } from "hono/vercel";
+import { authRouter } from "./routes/auth.js";
+import { feedsRouter } from "./routes/feeds.js";
+import { articlesRouter } from "./routes/articles.js";
+import { youtubeRouter } from "./routes/youtube.js";
+import { appName, appVersion } from "./version.js";
+
+const app = new Hono();
+
+app.use("*", logger());
+app.use(
+  "*",
+  cors({
+    origin: "*",
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+app.get("/", (c) => {
+  return c.json({
+    name: appName,
+    version: appVersion,
+    status: "running",
+  });
+});
+
+const healthHandler = (c: Context) => c.json({ status: "ok", version: appVersion });
+
+app.get("/health", healthHandler);
+app.get("/api/health", healthHandler);
+
+app.route("/api/auth", authRouter);
+app.route("/api/feeds", feedsRouter);
+app.route("/api/articles", articlesRouter);
+app.route("/api/youtube", youtubeRouter);
+
+app.onError((err, c) => {
+  console.error(err);
+
+  if (err instanceof HTTPException) {
+    return c.json({ error: err.message }, err.status);
+  }
+
+  return c.json({ error: err.message || "Internal Server Error" }, 500);
+});
+
+app.notFound((c) => c.json({ error: "Not Found" }, 404));
+
+export default handle(app);
+
