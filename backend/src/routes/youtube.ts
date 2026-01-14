@@ -49,6 +49,20 @@ function extractYtdlpErrorMessage(error: unknown): string | undefined {
   return cleaned.slice(0, 2000);
 }
 
+function normalizeErrorMessage(value: string): string {
+  return value.toLowerCase().replaceAll("\u2019", "'");
+}
+
+function isYouTubeAuthOrBotCheckMessage(message: string): boolean {
+  const normalized = normalizeErrorMessage(message);
+  return (
+    normalized.includes("confirm you're not a bot") ||
+    normalized.includes("please sign in to continue") ||
+    normalized.includes("cookies-from-browser") ||
+    normalized.includes("use --cookies")
+  );
+}
+
 // Proxy configuration
 const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY;
 const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
@@ -445,6 +459,21 @@ youtubeRouter.get(
       console.error("Get stream error:", error);
 
       const ytdlpMessage = extractYtdlpErrorMessage(error);
+      const debug =
+        c.req.header("x-feedflow-debug") === "1" ||
+        c.req.query("debug") === "1";
+
+      if (ytdlpMessage && isYouTubeAuthOrBotCheckMessage(ytdlpMessage)) {
+        const hint =
+          "YouTube blocked this server (bot check). Configure yt-dlp cookies (YTDLP_COOKIES_BASE64) on the backend and redeploy.";
+        if (debug) {
+          return c.json(
+            { error: hint, code: "YOUTUBE_BOT_CHECK", details: ytdlpMessage },
+            503
+          );
+        }
+        return c.json({ error: hint, code: "YOUTUBE_BOT_CHECK" }, 503);
+      }
 
       if (
         ytdlpMessage &&
@@ -464,9 +493,6 @@ youtubeRouter.get(
         return c.json({ error: ytdlpMessage, code: "STREAM_BACKEND_UNAVAILABLE" }, 503);
       }
 
-      const debug =
-        c.req.header("x-feedflow-debug") === "1" ||
-        c.req.query("debug") === "1";
       if (debug && ytdlpMessage) {
         return c.json(
           { error: "Failed to get stream URLs", details: ytdlpMessage },

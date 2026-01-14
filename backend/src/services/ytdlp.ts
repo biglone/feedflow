@@ -12,6 +12,43 @@ function normalizeEnvValue(value: string | undefined): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+function normalizeErrorMessage(value: string): string {
+  return value.toLowerCase().replaceAll("\u2019", "'");
+}
+
+function extractFailureMessage(error: unknown): string {
+  const anyError = error as any;
+  return [anyError?.stderr, anyError?.stdout, anyError?.message]
+    .filter(Boolean)
+    .map((part) => (typeof part === "string" ? part : JSON.stringify(part)))
+    .join("\n");
+}
+
+function isYouTubeAuthOrBotCheckError(error: unknown): boolean {
+  const message = normalizeErrorMessage(extractFailureMessage(error));
+  if (!message) return false;
+
+  return (
+    message.includes("confirm you're not a bot") ||
+    message.includes("sign in to confirm you're not a bot") ||
+    message.includes("please sign in to continue") ||
+    message.includes("use --cookies") ||
+    message.includes("cookies-from-browser")
+  );
+}
+
+function getYouTubePlayerClientFallbacks(): string[] {
+  const raw = normalizeEnvValue(process.env.YTDLP_YOUTUBE_PLAYER_CLIENTS);
+  if (!raw) return ["android", "ios"];
+
+  const parsed = raw
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+
+  return parsed.length > 0 ? parsed : ["android", "ios"];
+}
+
 // Get system yt-dlp path
 const ytdlpPath = (() => {
   try {
@@ -82,6 +119,10 @@ const ytdlpFallbackPath = ytdlpFallbackAsset
   : null;
 let ytdlpFallbackPromise: Promise<string> | null = null;
 let ytdlpFallbackEnabled = false;
+
+const ytdlpUserAgent =
+  normalizeEnvValue(process.env.YTDLP_USER_AGENT) ||
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 function getYtdlpBinaryAssetName(): string | null {
   if (process.platform === "win32") return "yt-dlp.exe";
@@ -180,7 +221,7 @@ function isYtdlpRuntimeError(error: unknown): boolean {
   return false;
 }
 
-async function runYtdlp(url: string): Promise<any> {
+async function runYtdlp(url: string, extraOptions: Record<string, any> = {}): Promise<any> {
   const options: Record<string, any> = {
     dumpSingleJson: true,
     noCheckCertificates: true,
@@ -188,6 +229,8 @@ async function runYtdlp(url: string): Promise<any> {
     preferFreeFormats: true,
     socketTimeout: 15,
     retries: 2,
+    userAgent: ytdlpUserAgent,
+    ...extraOptions,
   };
 
   const cookiesPath = await resolveYtdlpCookiesPath();
@@ -210,6 +253,38 @@ async function runYtdlp(url: string): Promise<any> {
     ytdlp = youtubedl.create(fallbackBinaryPath);
 
     return (await ytdlp(url, options)) as any;
+  }
+}
+
+async function runYtdlpWithFallback(url: string): Promise<any> {
+  try {
+    return await runYtdlp(url);
+  } catch (error) {
+    if (!isYouTubeAuthOrBotCheckError(error)) {
+      throw error;
+    }
+
+    const cookiesPath = await resolveYtdlpCookiesPath();
+    if (cookiesPath) {
+      throw error;
+    }
+
+    let lastError: unknown = error;
+
+    for (const client of getYouTubePlayerClientFallbacks()) {
+      try {
+        return await runYtdlp(url, {
+          extractorArgs: `youtube:player_client=${client}`,
+        });
+      } catch (fallbackError) {
+        lastError = fallbackError;
+        if (!isYouTubeAuthOrBotCheckError(fallbackError)) {
+          throw fallbackError;
+        }
+      }
+    }
+
+    throw lastError;
   }
 }
 
@@ -260,7 +335,7 @@ const CACHE_TTL = 5 * 60 * 60 * 1000; // 5 hours
 export async function getVideoInfo(videoId: string): Promise<VideoInfo> {
   const url = `https://www.youtube.com/watch?v=${videoId}`;
 
-  const info = (await runYtdlp(url)) as any;
+  const info = (await runYtdlpWithFallback(url)) as any;
 
   const formats: StreamFormat[] = (info.formats || []).map((f: any) => ({
     formatId: f.format_id,
@@ -299,7 +374,7 @@ export async function getStreamUrls(videoId: string): Promise<StreamUrls> {
 
   const url = `https://www.youtube.com/watch?v=${videoId}`;
 
-  const info = (await runYtdlp(url)) as any;
+  const info = (await runYtdlpWithFallback(url)) as any;
 
   const formats = info.formats || [];
 
