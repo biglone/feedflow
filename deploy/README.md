@@ -48,7 +48,7 @@
 ### 快速验证（不泄露 cookies 内容）
 
 ```bash
-curl -s -m 20 -b ~/.config/feedflow/yt-dlp-cookies.txt https://www.youtube.com | rg -q '"LOGGED_IN":true' && echo OK || echo NOT_LOGGED_IN
+curl -s -m 20 -b ~/.config/feedflow/yt-dlp-cookies.txt https://www.youtube.com | rg '"LOGGED_IN":true' >/dev/null && echo OK || echo NOT_LOGGED_IN
 ```
 
 如果结果是 `NOT_LOGGED_IN`，说明 cookies 很可能未包含有效登录态（或已被轮换失效），需要重新导出并再次运行 `setup-ytdlp-cookies.sh`。
