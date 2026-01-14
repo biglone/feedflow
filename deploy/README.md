@@ -45,13 +45,39 @@
 ./deploy/setup-ytdlp-cookies.sh /path/to/cookies.txt
 ```
 
-### 快速验证（不泄露 cookies 内容）
+### 快速验证（推荐）
+
+`setup-ytdlp-cookies.sh` 会在重启后端后，自动用 `yt-dlp` 做一次「可解析性」校验并输出结果。
+
+你也可以指定一个你当前失败的视频来验证（不会输出 cookies 内容）：
 
 ```bash
-curl -s -m 20 -b ~/.config/feedflow/yt-dlp-cookies.txt https://www.youtube.com | rg '"LOGGED_IN":true' >/dev/null && echo OK || echo NOT_LOGGED_IN
+FEEDFLOW_YTDLP_VERIFY_VIDEO_ID=FE-hM1kRK4Y ./deploy/setup-ytdlp-cookies.sh /tmp/cookies.txt
 ```
 
-如果结果是 `NOT_LOGGED_IN`，说明 cookies 很可能未包含有效登录态（或已被轮换失效），需要重新导出并再次运行 `setup-ytdlp-cookies.sh`。
+或者手动验证（可选，便于对比代理/环境差异）：
+
+```bash
+source ~/.config/feedflow/backend.env
+yt-dlp --cookies ~/.config/feedflow/yt-dlp-cookies.txt --skip-download https://www.youtube.com/watch?v=FE-hM1kRK4Y
+```
+
+## 2.2) 配置 PO Token Provider（可选，解决「部分视频仍然 bot-check」）
+
+YouTube 近期对部分视频开始强制要求 PO Token（即使 cookies 已配置，依然可能出现 “Sign in to confirm you’re not a bot”）。
+
+推荐使用 yt-dlp 的 PO Token Provider 插件（bgutil）自动生成 token（不需要每个视频手动抓 token）：
+
+```bash
+./deploy/setup-ytdlp-pot-provider.sh
+```
+
+该脚本会：
+
+- 安装 `bgutil-ytdlp-pot-provider` 的 yt-dlp 插件（放在 `~/.config/yt-dlp/plugins/`）
+- 在本机启动一个 Node.js provider 服务（默认端口 `4416`），并注册为 systemd user 服务：`feedflow-bgutil-pot-provider.service`
+
+如果你的网络无法访问 Docker Hub（镜像拉取超时），这个脚本会优先走「原生 Node.js」方式（从 GitHub clone 并 `npm install` / `npx tsc`）。
 
 ## 2.5) 初始化数据库（必须）
 
@@ -77,6 +103,8 @@ Webhook + 部署脚本使用 systemd 环境文件（不要提交到 git）：
 mkdir -p ~/.config/systemd/user
 cp deploy/systemd/feedflow-backend.service ~/.config/systemd/user/
 cp deploy/systemd/feedflow-deploy-webhook.service ~/.config/systemd/user/
+# 可选：PO Token provider（仅当你配置了 bgutil）
+cp deploy/systemd/feedflow-bgutil-pot-provider.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 ```
 
@@ -98,6 +126,8 @@ chmod 600 ~/.config/feedflow/deploy.env
 ```bash
 systemctl --user enable --now feedflow-backend.service
 systemctl --user enable --now feedflow-deploy-webhook.service
+# 可选：PO Token provider（仅当你配置了 bgutil）
+systemctl --user enable --now feedflow-bgutil-pot-provider.service
 ```
 
 ## 4) GitHub Webhook 配置

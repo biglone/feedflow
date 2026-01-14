@@ -1,0 +1,17 @@
+[Unit]
+Description=FeedFlow bgutil PO Token Provider
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/workspace/bgutil-ytdlp-pot-provider/server
+EnvironmentFile=-%h/.config/feedflow/backend.env
+ExecStart=/usr/bin/env bash -lc 'node build/main.js --port 4416'
+Restart=on-failure
+RestartSec=2
+StandardOutput=append:%h/.cache/feedflow/bgutil-pot-provider.log
+StandardError=append:%h/.cache/feedflow/bgutil-pot-provider.log
+
+[Install]
+WantedBy=default.target
+

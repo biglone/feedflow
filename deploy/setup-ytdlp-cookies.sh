@@ -70,6 +70,12 @@ fi
 echo "[cookies] installed: $DEST_COOKIES_PATH"
 echo "[cookies] updated:   $BACKEND_ENV_FILE"
 
+cookie_entries="$(grep -v '^#' "$DEST_COOKIES_PATH" | grep -v '^[[:space:]]*$' | wc -l | tr -d ' ')"
+if [[ "$cookie_entries" =~ ^[0-9]+$ ]] && [[ "$cookie_entries" -lt 30 ]]; then
+  echo "[cookies] warning: cookies file only has ${cookie_entries} entries; it may be incomplete (logged-out session)"
+  echo "[cookies] hint: if some videos still hit bot-check, export cookies while logged in to https://www.youtube.com (or YouTube Music) and reinstall"
+fi
+
 systemctl --user restart "$BACKEND_SERVICE"
 systemctl --user --no-pager -n 10 status "$BACKEND_SERVICE" || true
 
