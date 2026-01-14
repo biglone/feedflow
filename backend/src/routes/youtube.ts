@@ -465,7 +465,7 @@ youtubeRouter.get(
 
       if (ytdlpMessage && isYouTubeAuthOrBotCheckMessage(ytdlpMessage)) {
         const hint =
-          "YouTube blocked this server (bot check). Configure yt-dlp cookies (YTDLP_COOKIES_BASE64) on the backend and redeploy.";
+          "YouTube blocked this server (bot check). Configure yt-dlp cookies (YTDLP_COOKIES_PATH or YTDLP_COOKIES_BASE64) on the backend and restart/redeploy.";
         if (debug) {
           return c.json(
             { error: hint, code: "YOUTUBE_BOT_CHECK", details: ytdlpMessage },
