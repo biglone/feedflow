@@ -6,6 +6,12 @@ import os from "node:os";
 import path from "node:path";
 import { ProxyAgent, fetch as undiciFetch, type Response as UndiciResponse } from "undici";
 
+function normalizeEnvValue(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 // Get system yt-dlp path
 const ytdlpPath = (() => {
   try {
@@ -29,6 +35,46 @@ const proxyUrl =
   process.env.http_proxy ||
   process.env.HTTP_PROXY;
 const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
+
+const ytdlpCookiesPath = normalizeEnvValue(
+  process.env.YTDLP_COOKIES_PATH || process.env.YTDLP_COOKIES
+);
+const ytdlpCookiesBase64 = normalizeEnvValue(process.env.YTDLP_COOKIES_BASE64);
+const ytdlpCookiesTmpPath = ytdlpCookiesBase64
+  ? path.join(os.tmpdir(), "feedflow", "yt-dlp-cookies.txt")
+  : null;
+let ytdlpCookiesPromise: Promise<string> | null = null;
+
+async function ensureYtdlpCookiesFile(): Promise<string> {
+  if (!ytdlpCookiesBase64 || !ytdlpCookiesTmpPath) {
+    throw new Error("YTDLP_COOKIES_BASE64 is not configured");
+  }
+
+  if (ytdlpCookiesPromise) return ytdlpCookiesPromise;
+
+  ytdlpCookiesPromise = (async () => {
+    try {
+      await mkdir(path.dirname(ytdlpCookiesTmpPath), { recursive: true });
+      await writeFile(
+        ytdlpCookiesTmpPath,
+        Buffer.from(ytdlpCookiesBase64, "base64")
+      );
+      await chmod(ytdlpCookiesTmpPath, 0o600);
+      return ytdlpCookiesTmpPath;
+    } catch (error) {
+      ytdlpCookiesPromise = null;
+      throw error;
+    }
+  })();
+
+  return ytdlpCookiesPromise;
+}
+
+async function resolveYtdlpCookiesPath(): Promise<string | undefined> {
+  if (ytdlpCookiesPath) return ytdlpCookiesPath;
+  if (ytdlpCookiesBase64) return ensureYtdlpCookiesFile();
+  return undefined;
+}
 
 const ytdlpFallbackAsset = getYtdlpBinaryAssetName();
 const ytdlpFallbackPath = ytdlpFallbackAsset
@@ -144,6 +190,10 @@ async function runYtdlp(url: string): Promise<any> {
     retries: 2,
   };
 
+  const cookiesPath = await resolveYtdlpCookiesPath();
+  if (cookiesPath) {
+    options.cookies = cookiesPath;
+  }
 
   if (proxyUrl) {
     options.proxy = proxyUrl;

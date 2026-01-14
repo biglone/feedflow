@@ -66,6 +66,11 @@ const streamProxyClockSkewSeconds = parseInt(
   10
 );
 
+const youtubeStreamUrlMode = (process.env.YOUTUBE_STREAM_URL_MODE || "proxy")
+  .trim()
+  .toLowerCase();
+const youtubeStreamUseDirectUrls = youtubeStreamUrlMode === "direct";
+
 async function authorizeStreamRequest(c: Context): Promise<void> {
   if (!streamProxySecret && !streamProxyAccessToken) return;
 
@@ -375,32 +380,33 @@ youtubeRouter.get(
         }
       }
 
-      // Build proxy URLs instead of direct YouTube URLs
-      const protocol =
-        c.req.header("x-forwarded-proto") ||
-        new URL(c.req.url).protocol.replace(":", "");
-      const host = c.req.header("host") || "localhost:3000";
-      const baseUrl = `${protocol}://${host}/api/youtube/proxy/${videoId}`;
-      const exp = Math.floor(Date.now() / 1000) + streamProxyTtlSeconds;
+      const buildProxyUrl = youtubeStreamUseDirectUrls
+        ? null
+        : ((streamType: StreamType) => {
+            const protocol =
+              c.req.header("x-forwarded-proto") ||
+              new URL(c.req.url).protocol.replace(":", "");
+            const host = c.req.header("host") || "localhost:3000";
+            const baseUrl = `${protocol}://${host}/api/youtube/proxy/${videoId}`;
+            const exp = Math.floor(Date.now() / 1000) + streamProxyTtlSeconds;
 
-      const buildProxyUrl = (streamType: StreamType) => {
-        if (!streamProxySecret) return `${baseUrl}?type=${streamType}`;
+            if (!streamProxySecret) return `${baseUrl}?type=${streamType}`;
 
-        const sig = createStreamProxySignature({
-          secret: streamProxySecret,
-          videoId,
-          type: streamType,
-          exp,
-        });
+            const sig = createStreamProxySignature({
+              secret: streamProxySecret,
+              videoId,
+              type: streamType,
+              exp,
+            });
 
-        const qs = new URLSearchParams({
-          type: streamType,
-          exp: String(exp),
-          sig,
-        });
+            const qs = new URLSearchParams({
+              type: streamType,
+              exp: String(exp),
+              sig,
+            });
 
-        return `${baseUrl}?${qs.toString()}`;
-      };
+            return `${baseUrl}?${qs.toString()}`;
+          });
 
       const response: any = {
         title: streams.title,
@@ -409,10 +415,18 @@ youtubeRouter.get(
       };
 
       if (type === "video" || type === "both") {
-        response.videoUrl = streams.videoUrl ? buildProxyUrl("video") : null;
+        response.videoUrl = streams.videoUrl
+          ? youtubeStreamUseDirectUrls
+            ? streams.videoUrl
+            : buildProxyUrl?.("video")
+          : null;
       }
       if (type === "audio" || type === "both") {
-        response.audioUrl = streams.audioUrl ? buildProxyUrl("audio") : null;
+        response.audioUrl = streams.audioUrl
+          ? youtubeStreamUseDirectUrls
+            ? streams.audioUrl
+            : buildProxyUrl?.("audio")
+          : null;
       }
       if (videoId !== requestedVideoId) {
         response.resolvedVideoId = videoId;
