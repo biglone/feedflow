@@ -181,7 +181,8 @@ struct ImportSubscriptionsView: View {
             let response: SubscriptionsResponse = try await apiClient.requestWithToken(
                 method: "GET",
                 path: "/youtube/subscriptions",
-                token: accessToken
+                token: accessToken,
+                baseURLOverride: apiClient.currentYouTubeStreamBaseURL()
             )
 
             subscriptions = response.subscriptions

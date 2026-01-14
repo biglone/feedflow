@@ -183,7 +183,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.segmented)
 
-                    Text("Use Vercel if YouTube playback fails on your local server.")
+                    Text("Feeds sync uses the default server; YouTube uses this selection.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -267,9 +267,9 @@ struct SettingsView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
 
-                    Button("Use Vercel (feedflow-silk.vercel.app)") {
+                    Button("Use Vercel for YouTube") {
                         useLocalAPI = false
-                        apiBaseURLOverride = "https://feedflow-silk.vercel.app/api"
+                        apiBaseURLOverride = ""
                         youTubeStreamBaseURL = "https://feedflow-silk.vercel.app/api"
                     }
 
@@ -512,8 +512,9 @@ struct SettingsView: View {
 
     private func inferBackendPreset() -> BackendPreset {
         let base = APIClient.shared.currentBaseURL().lowercased()
+        let youtubeBase = APIClient.shared.currentYouTubeStreamBaseURL().lowercased()
 
-        if base.contains("feedflow-silk.vercel.app") {
+        if base.contains("feedflow-silk.vercel.app") || youtubeBase.contains("feedflow-silk.vercel.app") {
             return .vercel
         }
 
@@ -535,7 +536,7 @@ struct SettingsView: View {
             useLocalAPI = false
             #endif
         case .vercel:
-            apiBaseURLOverride = "https://feedflow-silk.vercel.app/api"
+            apiBaseURLOverride = ""
             youTubeStreamBaseURL = "https://feedflow-silk.vercel.app/api"
             #if DEBUG
             useLocalAPI = false

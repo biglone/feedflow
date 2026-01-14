@@ -463,7 +463,8 @@ actor APIClient {
         let response: SubscriptionVideosResponse = try await requestWithToken(
             method: "GET",
             path: path,
-            token: accessToken
+            token: accessToken,
+            baseURLOverride: youTubeStreamBaseURL
         )
         return response.channels
     }
@@ -500,13 +501,17 @@ actor APIClient {
             endpoint += "&pageToken=\(encodedToken)"
         }
 
-        let response: YouTubeSearchResponse = try await request(endpoint: endpoint)
+        let response: YouTubeSearchResponse = try await request(
+            endpoint: endpoint,
+            baseURLOverride: youTubeStreamBaseURL
+        )
         return (response.channels, response.nextPageToken)
     }
 
     func getYouTubeChannel(id: String) async throws -> YouTubeChannelDTO? {
         let response: YouTubeChannelResponse = try await request(
-            endpoint: "/youtube/channel/\(id)"
+            endpoint: "/youtube/channel/\(id)",
+            baseURLOverride: youTubeStreamBaseURL
         )
         return response.channel
     }
@@ -526,7 +531,10 @@ actor APIClient {
             endpoint += "&pageToken=\(pageToken.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? pageToken)"
         }
 
-        let response: YouTubeVideosResponse = try await request(endpoint: endpoint)
+        let response: YouTubeVideosResponse = try await request(
+            endpoint: endpoint,
+            baseURLOverride: youTubeStreamBaseURL
+        )
         return (response.videos, response.nextPageToken)
     }
 
@@ -534,7 +542,8 @@ actor APIClient {
         return try await request(
             endpoint: "/youtube/resolve",
             method: "POST",
-            body: YouTubeResolveRequest(url: url)
+            body: YouTubeResolveRequest(url: url),
+            baseURLOverride: youTubeStreamBaseURL
         )
     }
 
@@ -543,7 +552,8 @@ actor APIClient {
             let rssUrl: String
         }
         let response: RssResponse = try await request(
-            endpoint: "/youtube/channel/\(channelId)/rss"
+            endpoint: "/youtube/channel/\(channelId)/rss",
+            baseURLOverride: youTubeStreamBaseURL
         )
         return response.rssUrl
     }
@@ -584,7 +594,7 @@ actor APIClient {
     }
 
     nonisolated func getYouTubeDownloadURL(videoId: String, type: String = "video") -> URL {
-        return URL(string: "\(baseURL)/youtube/download/\(videoId)?type=\(type)")!
+        return URL(string: "\(youTubeStreamBaseURL)/youtube/download/\(videoId)?type=\(type)")!
     }
 
     // MARK: - Generic Request Methods
@@ -635,9 +645,11 @@ actor APIClient {
         method: String,
         path: String,
         token: String,
-        body: [String: Any]? = nil
+        body: [String: Any]? = nil,
+        baseURLOverride: String? = nil
     ) async throws -> T {
-        guard let url = URL(string: "\(baseURL)\(path)") else {
+        let base = baseURLOverride ?? baseURL
+        guard let url = URL(string: "\(base)\(path)") else {
             throw APIError.invalidURL
         }
 
