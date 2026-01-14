@@ -73,52 +73,31 @@ echo "[cookies] updated:   $BACKEND_ENV_FILE"
 systemctl --user restart "$BACKEND_SERVICE"
 systemctl --user --no-pager -n 10 status "$BACKEND_SERVICE" || true
 
-if command -v curl >/dev/null 2>&1; then
-  if curl -sS -m 20 -b "$DEST_COOKIES_PATH" "https://www.youtube.com" 2>/dev/null | grep -F '"LOGGED_IN":true' >/dev/null; then
-    echo "[cookies] verify: YouTube logged-in session detected"
-  else
-    echo "[cookies] warning: YouTube logged-in session not detected; cookies may be incomplete/expired"
-    echo "[cookies] hint: export cookies while logged in to https://www.youtube.com and rerun this script"
-  fi
+if [[ -f "$BACKEND_ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$BACKEND_ENV_FILE"
+  set +a
 fi
 
-if command -v curl >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
+if command -v yt-dlp >/dev/null 2>&1; then
   verify_video_id="${FEEDFLOW_YTDLP_VERIFY_VIDEO_ID:-dQw4w9WgXcQ}"
-  tmp_html="$(mktemp)"
-  if curl -sS -m 30 -b "$DEST_COOKIES_PATH" "https://www.youtube.com/watch?v=${verify_video_id}" -o "$tmp_html" 2>/dev/null; then
-    status_and_reason="$(
-      node - "$tmp_html" <<'NODE' || true
-const fs = require('fs');
-const path = process.argv[2];
-const html = fs.readFileSync(path, 'utf8');
-let match = html.match(/ytInitialPlayerResponse\\s*=\\s*(\\{.+?\\});/s);
-if (!match) match = html.match(/\"ytInitialPlayerResponse\"\\s*:\\s*(\\{.+?\\})\\s*,\\s*\"ytInitialData\"/s);
-if (!match) {
-  process.exit(2);
-}
-const data = JSON.parse(match[1]);
-const ps = data.playabilityStatus || {};
-const status = ps.status || '';
-const reason = ps.reason || '';
-process.stdout.write(status + \"\\n\" + reason);
-NODE
-    )"
-    status="$(echo "$status_and_reason" | head -n 1 | tr -d '\r')"
-    reason="$(echo "$status_and_reason" | tail -n +2 | tr -d '\r')"
+  verify_url="https://www.youtube.com/watch?v=${verify_video_id}"
+  verify_err="$(mktemp)"
 
-    if [[ "$status" == "OK" ]]; then
-      echo "[cookies] verify: video playability OK (${verify_video_id})"
-    else
-      echo "[cookies] warning: video playability is not OK (${verify_video_id}) status=${status:-unknown}"
-      if [[ -n "$reason" ]]; then
-        echo "[cookies] details: $reason"
-      fi
-      echo "[cookies] hint: this usually means the current proxy/VPN exit IP is flagged; switch to a different exit (prefer residential) or solve the bot-check in a browser using the same exit IP, then re-export cookies"
-    fi
+  if yt-dlp --cookies "$DEST_COOKIES_PATH" -q --no-warnings --skip-download "$verify_url" >/dev/null 2>"$verify_err"; then
+    echo "[cookies] verify: yt-dlp can extract (${verify_video_id})"
   else
-    echo "[cookies] warning: failed to fetch YouTube watch page for verification; skipping playability check"
+    err_line="$(grep -m 1 '^ERROR:' "$verify_err" || tail -n 1 "$verify_err")"
+    err_line="${err_line#ERROR: }"
+    echo "[cookies] warning: yt-dlp verify failed (${verify_video_id})"
+    if [[ -n "$err_line" ]]; then
+      echo "[cookies] details: $err_line"
+    fi
+    echo "[cookies] hint: if this is a bot-check, switch proxy/VPN exit (prefer residential) or solve the bot-check in a browser using the same exit IP, then re-export cookies"
   fi
-  rm -f "$tmp_html" || true
+
+  rm -f "$verify_err" || true
 fi
 
 echo "[cookies] done"
