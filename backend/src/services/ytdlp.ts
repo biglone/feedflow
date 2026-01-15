@@ -24,10 +24,7 @@ function extractFailureMessage(error: unknown): string {
     .join("\n");
 }
 
-function isYouTubeAuthOrBotCheckError(error: unknown): boolean {
-  const message = normalizeErrorMessage(extractFailureMessage(error));
-  if (!message) return false;
-
+function isYouTubeAuthOrBotCheckMessage(message: string): boolean {
   return (
     message.includes("confirm you're not a bot") ||
     message.includes("sign in to confirm you're not a bot") ||
@@ -35,6 +32,26 @@ function isYouTubeAuthOrBotCheckError(error: unknown): boolean {
     message.includes("use --cookies") ||
     message.includes("cookies-from-browser")
   );
+}
+
+function isYouTubePlayerClientFallbackMessage(message: string): boolean {
+  if (isYouTubeAuthOrBotCheckMessage(message)) return true;
+
+  return (
+    message.includes("failed to extract") ||
+    message.includes("signature") ||
+    message.includes("nsig") ||
+    message.includes("player response") ||
+    message.includes("unable to download api page") ||
+    message.includes("http error 403") ||
+    message.includes("http error 429")
+  );
+}
+
+function shouldAttemptPlayerClientFallback(error: unknown): boolean {
+  const message = normalizeErrorMessage(extractFailureMessage(error));
+  if (!message) return false;
+  return isYouTubePlayerClientFallbackMessage(message);
 }
 
 function getYouTubePlayerClientFallbacks(): string[] {
@@ -46,7 +63,9 @@ function getYouTubePlayerClientFallbacks(): string[] {
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
 
-  return parsed.length > 0 ? parsed : ["android", "ios"];
+  const unique = Array.from(new Set(parsed));
+
+  return unique.length > 0 ? unique : ["android", "ios"];
 }
 
 // Get system yt-dlp path
@@ -221,7 +240,30 @@ function isYtdlpRuntimeError(error: unknown): boolean {
   return false;
 }
 
-async function runYtdlp(url: string, extraOptions: Record<string, any> = {}): Promise<any> {
+type YtdlpRunOptions = {
+  cookiesPath?: string;
+  disableCookies?: boolean;
+};
+
+type YtdlpFallbackAttempt = {
+  client: string;
+  disableCookies: boolean;
+};
+
+function buildYtdlpFallbackAttempts(hasCookies: boolean): YtdlpFallbackAttempt[] {
+  const clients = getYouTubePlayerClientFallbacks();
+  const attempts = clients.map((client) => ({ client, disableCookies: false }));
+  if (hasCookies) {
+    attempts.push(...clients.map((client) => ({ client, disableCookies: true })));
+  }
+  return attempts;
+}
+
+async function runYtdlp(
+  url: string,
+  extraOptions: Record<string, any> = {},
+  runOptions: YtdlpRunOptions = {}
+): Promise<any> {
   const options: Record<string, any> = {
     dumpSingleJson: true,
     noCheckCertificates: true,
@@ -233,9 +275,12 @@ async function runYtdlp(url: string, extraOptions: Record<string, any> = {}): Pr
     ...extraOptions,
   };
 
-  const cookiesPath = await resolveYtdlpCookiesPath();
-  if (cookiesPath) {
-    options.cookies = cookiesPath;
+  if (!runOptions.disableCookies) {
+    const cookiesPath =
+      runOptions.cookiesPath ?? (await resolveYtdlpCookiesPath());
+    if (cookiesPath) {
+      options.cookies = cookiesPath;
+    }
   }
 
   if (proxyUrl) {
@@ -257,35 +302,36 @@ async function runYtdlp(url: string, extraOptions: Record<string, any> = {}): Pr
 }
 
 async function runYtdlpWithFallback(url: string): Promise<any> {
+  const cookiesPath = await resolveYtdlpCookiesPath();
+
   try {
-    return await runYtdlp(url);
+    return await runYtdlp(url, {}, { cookiesPath });
   } catch (error) {
-    if (!isYouTubeAuthOrBotCheckError(error)) {
+    if (!shouldAttemptPlayerClientFallback(error)) {
       throw error;
     }
+  }
 
-    const cookiesPath = await resolveYtdlpCookiesPath();
-    if (cookiesPath) {
-      throw error;
-    }
+  let lastError: unknown = null;
+  const attempts = buildYtdlpFallbackAttempts(Boolean(cookiesPath));
 
-    let lastError: unknown = error;
-
-    for (const client of getYouTubePlayerClientFallbacks()) {
-      try {
-        return await runYtdlp(url, {
-          extractorArgs: `youtube:player_client=${client}`,
-        });
-      } catch (fallbackError) {
-        lastError = fallbackError;
-        if (!isYouTubeAuthOrBotCheckError(fallbackError)) {
-          throw fallbackError;
-        }
+  for (const attempt of attempts) {
+    try {
+      return await runYtdlp(
+        url,
+        { extractorArgs: `youtube:player_client=${attempt.client}` },
+        { cookiesPath, disableCookies: attempt.disableCookies }
+      );
+    } catch (fallbackError) {
+      lastError = fallbackError;
+      if (!shouldAttemptPlayerClientFallback(fallbackError)) {
+        throw fallbackError;
       }
     }
-
-    throw lastError;
   }
+
+  if (lastError) throw lastError;
+  throw new Error("Failed to resolve YouTube stream metadata");
 }
 
 export interface StreamFormat {
