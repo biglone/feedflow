@@ -213,7 +213,6 @@ private struct RecommendedFeed: Identifiable, Hashable {
 private enum RecommendedFeedCatalog {
     static let categoryOrder: [String: Int] = [
         "中文": 0,
-        "YouTube 中文": 1,
         "YouTube Global": 2,
         "Linux": 3,
         "Programming": 4,
@@ -270,62 +269,6 @@ private enum RecommendedFeedCatalog {
 	            category: "中文",
 	            description: "有趣的开源项目精选"
 	        ),
-            RecommendedFeed(
-                title: "极客湾 Geekerwan",
-                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCNi3K9HUzuTmILZH0iGupkw",
-                category: "YouTube 中文",
-                kind: .youtube,
-                description: "硬件评测与技术科普"
-            ),
-            RecommendedFeed(
-                title: "李永乐老师",
-                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCSQsmKOnRA-2ol6a3M4Rpug",
-                category: "YouTube 中文",
-                kind: .youtube,
-                description: "数学、物理与科普"
-            ),
-            RecommendedFeed(
-                title: "回形针PaperClip",
-                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCg3Ny8s-SJRtP93kH6cMDew",
-                category: "YouTube 中文",
-                kind: .youtube,
-                description: "知识科普"
-            ),
-            RecommendedFeed(
-                title: "小宁子",
-                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCEwYe1cxnI9czwt_2u2hOcA",
-                category: "YouTube 中文",
-                kind: .youtube,
-                description: "数码与科技"
-            ),
-            RecommendedFeed(
-                title: "老师好我叫何同学",
-                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCP5Kd0smdWe9H_bDH-73c6Q",
-                category: "YouTube 中文",
-                kind: .youtube,
-                description: "创意视频与科技"
-            ),
-            RecommendedFeed(
-                title: "科技美学",
-                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCAC204niCVvtDRDFYSiK7Cg",
-                category: "YouTube 中文",
-                kind: .youtube,
-                description: "数码评测与科技资讯"
-            ),
-            RecommendedFeed(
-                title: "ZEALER China",
-                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC_Ks6fcoGgv4LotTZszYs-g",
-                category: "YouTube 中文",
-                kind: .youtube,
-                description: "科技评测与数码生活"
-            ),
-            RecommendedFeed(
-                title: "罗永浩的十字路口",
-                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC33VP_gIBzCVcEvaGKBocZA",
-                category: "YouTube 中文",
-                kind: .youtube,
-                description: "访谈与观点"
-            ),
             RecommendedFeed(
                 title: "Veritasium",
                 url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHnyfMqiRRG1u-2MsSQLbXA",
@@ -466,6 +409,90 @@ private enum RecommendedFeedCatalog {
                 kind: .youtube,
                 description: "Long-form AI & tech interviews"
             ),
+            RecommendedFeed(
+                title: "OpenAI",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCXZCJLdBC09xxGZ6gcdrc6A",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "AI research updates"
+            ),
+            RecommendedFeed(
+                title: "Google DeepMind",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCP7jMXSY2xbc3KCAE0MHQ-A",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "AI research and demos"
+            ),
+            RecommendedFeed(
+                title: "DeepLearningAI",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCcIXc5mJsHVYTZR1maL5l9w",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "AI courses and insights"
+            ),
+            RecommendedFeed(
+                title: "HuggingFace",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHlNU7kIZhRgSbhHvFoy72w",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Open-source AI demos"
+            ),
+            RecommendedFeed(
+                title: "TensorFlow",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC0rqucBdTuFTjJiefW5t-IQ",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "ML framework updates"
+            ),
+            RecommendedFeed(
+                title: "PyTorch",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCWXI5YeOsh03QvJ59PMaXFw",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Deep learning framework"
+            ),
+            RecommendedFeed(
+                title: "NVIDIA",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHuiy8bXnmK5nisYHUd1J5g",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "AI computing and hardware"
+            ),
+            RecommendedFeed(
+                title: "GitHub",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC7c3Kb6jYCRj4JOHHZTxKsQ",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Developer tooling and OSS"
+            ),
+            RecommendedFeed(
+                title: "ThePrimeagen",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC8ENHE5xdFSwx71u3fDH5Xw",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Programming and systems"
+            ),
+            RecommendedFeed(
+                title: "Traversy Media",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC29ju8bIPH5as8OGnQzwJyA",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Web development tutorials"
+            ),
+            RecommendedFeed(
+                title: "Sebastian Lague",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCmtyQOKKmrMVaKuRXz02jbQ",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Game dev and graphics"
+            ),
+            RecommendedFeed(
+                title: "Corey Schafer",
+                url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCCezIgC97PvUuR4_gbFUs5g",
+                category: "YouTube Global",
+                kind: .youtube,
+                description: "Python tutorials"
+            ),
 	        RecommendedFeed(
 	            title: "Linux Do",
 	            url: "https://linux.do/latest.rss",
@@ -593,6 +620,36 @@ private enum RecommendedFeedCatalog {
 	            description: "Swift and app development"
 	        ),
 	        RecommendedFeed(
+	            title: "web.dev",
+	            url: "https://web.dev/feed.xml",
+	            category: "Programming",
+	            description: "Web platform updates"
+	        ),
+	        RecommendedFeed(
+	            title: "Mozilla Hacks",
+	            url: "https://hacks.mozilla.org/feed/",
+	            category: "Programming",
+	            description: "Browser and web engineering"
+	        ),
+	        RecommendedFeed(
+	            title: "Microsoft DevBlogs",
+	            url: "https://devblogs.microsoft.com/feed/",
+	            category: "Programming",
+	            description: "Developer tools and platform news"
+	        ),
+	        RecommendedFeed(
+	            title: "ACM Queue",
+	            url: "https://queue.acm.org/rss/feeds/queuecontent.xml",
+	            category: "Programming",
+	            description: "Systems and software engineering"
+	        ),
+	        RecommendedFeed(
+	            title: "Slack Engineering",
+	            url: "https://slack.engineering/feed",
+	            category: "Programming",
+	            description: "Slack engineering stories"
+	        ),
+	        RecommendedFeed(
 	            title: "Dropbox Tech",
 	            url: "https://dropbox.tech/feed",
 	            category: "Programming",
@@ -633,6 +690,18 @@ private enum RecommendedFeedCatalog {
 	            url: "https://www.hashicorp.com/blog/feed.xml",
 	            category: "DevOps",
 	            description: "Terraform, Vault, and cloud tooling"
+	        ),
+	        RecommendedFeed(
+	            title: "Google Cloud Blog",
+	            url: "https://cloud.google.com/blog/rss",
+	            category: "DevOps",
+	            description: "Cloud architecture and platform updates"
+	        ),
+	        RecommendedFeed(
+	            title: "AWS Architecture Blog",
+	            url: "https://aws.amazon.com/blogs/architecture/feed/",
+	            category: "DevOps",
+	            description: "Cloud architecture patterns"
 	        ),
 	        RecommendedFeed(
 	            title: "Spotify Engineering",
@@ -747,6 +816,24 @@ private enum RecommendedFeedCatalog {
 	            url: "https://www.androidpolice.com/feed/",
 	            category: "Tech",
 	            description: "Android and mobile tech"
+	        ),
+	        RecommendedFeed(
+	            title: "High Scalability",
+	            url: "https://highscalability.com/feed/",
+	            category: "Tech",
+	            description: "Architecture and scalability"
+	        ),
+	        RecommendedFeed(
+	            title: "InfoQ",
+	            url: "https://www.infoq.com/feed/",
+	            category: "Tech",
+	            description: "Software architecture news"
+	        ),
+	        RecommendedFeed(
+	            title: "IEEE Spectrum",
+	            url: "https://spectrum.ieee.org/feeds/feed.rss",
+	            category: "Tech",
+	            description: "Engineering and technology"
 	        ),
 	        RecommendedFeed(
 	            title: "Lobsters",
