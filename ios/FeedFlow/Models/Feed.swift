@@ -4,6 +4,7 @@ import SwiftData
 @Model
 final class Feed {
     var id: UUID
+    var cloudId: String?
     var title: String
     var feedURL: String
     var siteURL: String?
@@ -21,6 +22,7 @@ final class Feed {
 
     init(
         id: UUID = UUID(),
+        cloudId: String? = nil,
         title: String,
         feedURL: String,
         siteURL: String? = nil,
@@ -29,6 +31,7 @@ final class Feed {
         kind: String? = nil
     ) {
         self.id = id
+        self.cloudId = cloudId
         self.title = title
         self.feedURL = feedURL
         self.siteURL = siteURL

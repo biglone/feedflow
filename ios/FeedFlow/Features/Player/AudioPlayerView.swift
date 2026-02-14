@@ -27,7 +27,8 @@ struct AudioPlayerView: View {
                 onSkipForward: { playerManager.skipForward(seconds: 15) },
                 onModeToggle: {},
                 onDismiss: { dismiss() },
-                showsModeToggle: false
+                showsModeToggle: false,
+                dismissIconName: "chevron.down.circle.fill"
             )
         }
         .onAppear {
@@ -63,4 +64,3 @@ struct AudioPlayerView: View {
 #Preview {
     AudioPlayerView()
 }
-

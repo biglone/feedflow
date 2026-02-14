@@ -307,6 +307,7 @@ struct PlayerControlsOverlay: View {
     let onModeToggle: () -> Void
     let onDismiss: () -> Void
     var showsModeToggle: Bool = true
+    var dismissIconName: String = "chevron.down"
 
     @State private var isScrubbing = false
     @State private var scrubValue: TimeInterval = 0
@@ -334,7 +335,7 @@ struct PlayerControlsOverlay: View {
                     Button {
                         onDismiss()
                     } label: {
-                        Image(systemName: "chevron.down")
+                        Image(systemName: dismissIconName)
                             .font(.title2)
                             .foregroundStyle(.white)
                     }

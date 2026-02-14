@@ -78,7 +78,7 @@ struct ContentView: View {
     @ViewBuilder
     private func tabRoot<Content: View>(_ content: Content) -> some View {
         content.safeAreaInset(edge: .bottom, spacing: 0) {
-            if playerManager.currentVideoId != nil {
+            if playerManager.nowPlayingInfo != nil {
                 VStack(spacing: 0) {
                     MiniPlayerView(
                         onTap: {

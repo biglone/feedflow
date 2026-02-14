@@ -35,59 +35,83 @@ class FeedManager: ObservableObject {
         defer { isSyncing = false }
 
         do {
-            // Fetch feeds from cloud
             let cloudFeeds = try await apiClient.getFeeds()
 
-            // Get local feeds
             let descriptor = FetchDescriptor<Feed>()
-            let localFeeds = try modelContext.fetch(descriptor)
-            let localFeedURLs = Set(localFeeds.map { $0.feedURL })
+            var localFeeds = try modelContext.fetch(descriptor)
+            consolidateDuplicateFeeds(localFeeds)
+            try modelContext.save()
 
-            // Add new feeds from cloud (cloud-first strategy)
+            localFeeds = try modelContext.fetch(descriptor)
+            var feedsByCloudId: [String: Feed] = [:]
+            var feedsByNormalizedURL: [String: Feed] = [:]
+
+            for feed in localFeeds {
+                if let cloudId = normalizedCloudId(feed.cloudId) {
+                    feedsByCloudId[cloudId] = feed
+                }
+                feedsByNormalizedURL[normalizeFeedURL(feed.feedURL)] = feed
+            }
+
             for cloudFeed in cloudFeeds {
-                if !localFeedURLs.contains(cloudFeed.feedUrl) {
-                    let feed = Feed(
-                        title: cloudFeed.title,
-                        feedURL: cloudFeed.feedUrl,
-                        siteURL: cloudFeed.siteUrl,
-                        iconURL: cloudFeed.iconUrl,
-                        feedDescription: cloudFeed.description,
-                        kind: FeedKind.infer(from: cloudFeed.feedUrl).rawValue
+                if let existing = feedsByCloudId[cloudFeed.id] {
+                    applyCloudFeed(cloudFeed, to: existing)
+                    continue
+                }
+
+                let normalizedURL = normalizeFeedURL(cloudFeed.feedUrl)
+                if let existing = feedsByNormalizedURL[normalizedURL] {
+                    existing.cloudId = cloudFeed.id
+                    applyCloudFeed(cloudFeed, to: existing)
+                    feedsByCloudId[cloudFeed.id] = existing
+                    continue
+                }
+
+                let feed = Feed(
+                    cloudId: cloudFeed.id,
+                    title: cloudFeed.title,
+                    feedURL: cloudFeed.feedUrl,
+                    siteURL: cloudFeed.siteUrl,
+                    iconURL: cloudFeed.iconUrl,
+                    feedDescription: cloudFeed.description,
+                    kind: FeedKind.infer(from: cloudFeed.feedUrl).rawValue
+                )
+                modelContext.insert(feed)
+
+                // Fetch articles for this feed
+                let cloudArticles = try await apiClient.getFeedArticles(feedId: cloudFeed.id)
+                for cloudArticle in cloudArticles {
+                    let audioURL = FeedKind.isAudioEnclosureURL(cloudArticle.imageUrl) ? cloudArticle.imageUrl : nil
+                    let imageURL = audioURL == nil ? cloudArticle.imageUrl : nil
+                    let article = Article(
+                        guid: cloudArticle.guid,
+                        title: cloudArticle.title,
+                        content: cloudArticle.content,
+                        summary: cloudArticle.summary,
+                        articleURL: cloudArticle.url,
+                        author: cloudArticle.author,
+                        imageURL: imageURL,
+                        audioURL: audioURL,
+                        publishedAt: cloudArticle.publishedAt
                     )
-                    modelContext.insert(feed)
+                    article.isRead = cloudArticle.isRead
+                    article.isStarred = cloudArticle.isStarred
+                    article.feed = feed
+                    modelContext.insert(article)
+                }
 
-	                    // Fetch articles for this feed
-	                    let cloudArticles = try await apiClient.getFeedArticles(feedId: cloudFeed.id)
-	                    for cloudArticle in cloudArticles {
-	                        let audioURL = FeedKind.isAudioEnclosureURL(cloudArticle.imageUrl) ? cloudArticle.imageUrl : nil
-	                        let imageURL = audioURL == nil ? cloudArticle.imageUrl : nil
-	                        let article = Article(
-	                            guid: cloudArticle.guid,
-	                            title: cloudArticle.title,
-	                            content: cloudArticle.content,
-	                            summary: cloudArticle.summary,
-	                            articleURL: cloudArticle.url,
-	                            author: cloudArticle.author,
-	                            imageURL: imageURL,
-	                            audioURL: audioURL,
-	                            publishedAt: cloudArticle.publishedAt
-	                        )
-	                        article.isRead = cloudArticle.isRead
-	                        article.isStarred = cloudArticle.isStarred
-	                        article.feed = feed
-                        modelContext.insert(article)
-                    }
+                feed.unreadCount = cloudArticles.filter { !$0.isRead }.count
+                feed.lastUpdated = cloudFeed.lastFetchedAt
 
-                    feed.unreadCount = cloudArticles.filter { !$0.isRead }.count
-                    feed.lastUpdated = cloudFeed.lastFetchedAt
-
-                    if feed.kind == FeedKind.rss.rawValue {
-                        let hasAudioEnclosure = cloudArticles.contains { FeedKind.isAudioEnclosureURL($0.imageUrl) }
-                        if hasAudioEnclosure {
-                            feed.kind = FeedKind.podcast.rawValue
-                        }
+                if feed.kind == FeedKind.rss.rawValue {
+                    let hasAudioEnclosure = cloudArticles.contains { FeedKind.isAudioEnclosureURL($0.imageUrl) }
+                    if hasAudioEnclosure {
+                        feed.kind = FeedKind.podcast.rawValue
                     }
                 }
+
+                feedsByCloudId[cloudFeed.id] = feed
+                feedsByNormalizedURL[normalizedURL] = feed
             }
 
             try modelContext.save()
@@ -95,6 +119,175 @@ class FeedManager: ObservableObject {
         } catch {
             self.error = error
         }
+    }
+
+    // MARK: - Sync Helpers
+
+    private func normalizeFeedURL(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return trimmed }
+        guard let url = URL(string: trimmed) else { return trimmed.lowercased() }
+
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        if let scheme = components?.scheme?.lowercased(), scheme == "http" || scheme == "https" {
+            components?.scheme = "https"
+        }
+        if let host = components?.host {
+            components?.host = host.lowercased()
+        }
+        var normalized = components?.url?.absoluteString ?? trimmed
+        if normalized.hasSuffix("/") {
+            normalized.removeLast()
+        }
+        return normalized
+    }
+
+    private func normalizedCloudId(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func consolidateDuplicateFeeds(_ feeds: [Feed]) {
+        let groupedFeeds = Dictionary(grouping: feeds, by: { normalizeFeedURL($0.feedURL) })
+
+        for group in groupedFeeds.values where group.count > 1 {
+            mergeDuplicateFeeds(group)
+        }
+    }
+
+    private func mergeDuplicateFeeds(_ feeds: [Feed]) {
+        guard let primary = selectPrimaryFeed(from: feeds) else { return }
+        let duplicates = feeds.filter { $0 !== primary }
+        var articlesByGuid: [String: Article] = [:]
+        for article in primary.articles {
+            if let existing = articlesByGuid[article.guid] {
+                mergeArticleMetadata(primary: existing, duplicate: article)
+            } else {
+                articlesByGuid[article.guid] = article
+            }
+        }
+
+        for duplicate in duplicates {
+            mergeFeedMetadata(primary: primary, duplicate: duplicate)
+            mergeFeedArticles(primary: primary, duplicate: duplicate, articlesByGuid: &articlesByGuid)
+            modelContext.delete(duplicate)
+        }
+
+        primary.unreadCount = primary.articles.filter { !$0.isRead }.count
+    }
+
+    private func selectPrimaryFeed(from feeds: [Feed]) -> Feed? {
+        let withCloudId = feeds.filter { normalizedCloudId($0.cloudId) != nil }
+        if let primary = withCloudId.max(by: { $0.articles.count < $1.articles.count }) {
+            return primary
+        }
+        return feeds.max(by: { $0.articles.count < $1.articles.count })
+    }
+
+    private func mergeFeedMetadata(primary: Feed, duplicate: Feed) {
+        if isBlank(primary.feedDescription), !isBlank(duplicate.feedDescription) {
+            primary.feedDescription = duplicate.feedDescription
+        }
+        if isBlank(primary.siteURL), !isBlank(duplicate.siteURL) {
+            primary.siteURL = duplicate.siteURL
+        }
+        if isBlank(primary.iconURL), !isBlank(duplicate.iconURL) {
+            primary.iconURL = duplicate.iconURL
+        }
+        if isBlank(primary.kind), !isBlank(duplicate.kind) {
+            primary.kind = duplicate.kind
+        }
+        if isBlank(primary.cloudId), !isBlank(duplicate.cloudId) {
+            primary.cloudId = duplicate.cloudId
+        }
+        if primary.folder == nil, let folder = duplicate.folder {
+            primary.folder = folder
+        }
+        if let duplicateUpdated = duplicate.lastUpdated {
+            if let primaryUpdated = primary.lastUpdated {
+                if duplicateUpdated > primaryUpdated {
+                    primary.lastUpdated = duplicateUpdated
+                }
+            } else {
+                primary.lastUpdated = duplicateUpdated
+            }
+        }
+    }
+
+    private func mergeFeedArticles(
+        primary: Feed,
+        duplicate: Feed,
+        articlesByGuid: inout [String: Article]
+    ) {
+        let duplicateArticles = Array(duplicate.articles)
+        for article in duplicateArticles {
+            if let existing = articlesByGuid[article.guid] {
+                mergeArticleMetadata(primary: existing, duplicate: article)
+                continue
+            }
+
+            article.feed = primary
+            articlesByGuid[article.guid] = article
+        }
+    }
+
+    private func mergeArticleMetadata(primary: Article, duplicate: Article) {
+        if duplicate.isRead && !primary.isRead {
+            primary.isRead = true
+        }
+        if duplicate.isStarred && !primary.isStarred {
+            primary.isStarred = true
+        }
+
+        if isBlank(primary.content), !isBlank(duplicate.content) {
+            primary.content = duplicate.content
+        }
+        if isBlank(primary.summary), !isBlank(duplicate.summary) {
+            primary.summary = duplicate.summary
+        }
+        if isBlank(primary.articleURL), !isBlank(duplicate.articleURL) {
+            primary.articleURL = duplicate.articleURL
+        }
+        if isBlank(primary.author), !isBlank(duplicate.author) {
+            primary.author = duplicate.author
+        }
+        if isBlank(primary.imageURL), !isBlank(duplicate.imageURL) {
+            primary.imageURL = duplicate.imageURL
+        }
+        if isBlank(primary.audioURL), !isBlank(duplicate.audioURL) {
+            primary.audioURL = duplicate.audioURL
+        }
+        if primary.publishedAt == nil, let publishedAt = duplicate.publishedAt {
+            primary.publishedAt = publishedAt
+        }
+    }
+
+    private func applyCloudFeed(_ cloudFeed: APIClient.FeedDTO, to feed: Feed) {
+        feed.title = cloudFeed.title
+        if isBlank(feed.feedURL) {
+            feed.feedURL = cloudFeed.feedUrl
+        }
+
+        if !isBlank(cloudFeed.siteUrl) {
+            feed.siteURL = cloudFeed.siteUrl
+        }
+        if !isBlank(cloudFeed.iconUrl) {
+            feed.iconURL = cloudFeed.iconUrl
+        }
+        if !isBlank(cloudFeed.description) {
+            feed.feedDescription = cloudFeed.description
+        }
+        if let lastFetchedAt = cloudFeed.lastFetchedAt {
+            feed.lastUpdated = lastFetchedAt
+        }
+        if isBlank(feed.kind) {
+            feed.kind = FeedKind.infer(from: cloudFeed.feedUrl).rawValue
+        }
+    }
+
+    private func isBlank(_ value: String?) -> Bool {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty
     }
 
     func addFeed(url: String, kindHint: FeedKind? = nil) async throws -> Feed {
@@ -111,6 +304,7 @@ class FeedManager: ObservableObject {
 
             let inferredKind = kindHint ?? FeedKind.infer(from: cloudFeed.feedUrl)
             let feed = Feed(
+                cloudId: cloudFeed.id,
                 title: cloudFeed.title,
                 feedURL: cloudFeed.feedUrl,
                 siteURL: cloudFeed.siteUrl,
