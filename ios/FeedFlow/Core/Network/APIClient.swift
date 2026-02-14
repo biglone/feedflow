@@ -513,6 +513,14 @@ actor APIClient {
         let thumbnailUrl: String
     }
 
+    struct YouTubeStreamHealthResponse: Decodable {
+        let ok: Bool
+        let status: String
+        let message: String?
+        let checkedAt: Date?
+        let videoId: String?
+    }
+
     func searchYouTubeChannels(query: String, limit: Int = 50) async throws -> [YouTubeChannelDTO] {
         let page = try await searchYouTubeChannelsPage(query: query, limit: limit, pageToken: nil)
         return page.channels
@@ -621,6 +629,26 @@ actor APIClient {
             AppLog.player.error("YouTube stream error videoId=\(videoId, privacy: .public): \(error.localizedDescription, privacy: .public)")
             throw error
         }
+    }
+
+    func getYouTubeStreamHealth(videoId: String? = nil) async throws -> YouTubeStreamHealthResponse {
+        var extraHeaders: [String: String] = [:]
+        let streamProxyToken = UserDefaults.standard.string(forKey: "streamProxyAccessToken") ?? ""
+        if !streamProxyToken.isEmpty {
+            extraHeaders["X-FeedFlow-Stream-Token"] = streamProxyToken
+        }
+
+        var endpoint = "/youtube/health"
+        if let videoId, !videoId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let encoded = videoId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? videoId
+            endpoint += "?videoId=\(encoded)"
+        }
+
+        return try await request(
+            endpoint: endpoint,
+            headers: extraHeaders,
+            baseURLOverride: youTubeStreamBaseURL
+        )
     }
 
     nonisolated func getYouTubeDownloadURL(videoId: String, type: String = "video") -> URL {

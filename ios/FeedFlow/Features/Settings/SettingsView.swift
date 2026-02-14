@@ -33,6 +33,14 @@ struct SettingsView: View {
     @State private var importTotal = 0
     @State private var importTask: Task<Void, Never>?
 
+    @State private var isCheckingYouTubeHealth = false
+    @State private var youTubeHealthStatus: YouTubeHealthStatus = .unknown
+    @State private var youTubeHealthCheckedAt: Date?
+    @State private var youTubeHealthMessage = ""
+    @State private var showingYouTubeHealthAlert = false
+    @State private var youTubeHealthAlertMessage = ""
+    @State private var didAutoCheckYouTubeHealth = false
+
     @State private var showingOPMLAlert = false
     @State private var opmlAlertTitle = "OPML"
     @State private var opmlAlertMessage = ""
@@ -60,11 +68,44 @@ struct SettingsView: View {
         }
     }
 
+    private enum YouTubeHealthStatus: String {
+        case unknown = "Not checked"
+        case ok = "OK"
+        case needsAttention = "Needs attention"
+        case error = "Error"
+    }
+
     private var backendPresetBinding: Binding<BackendPreset> {
         Binding(
             get: { inferBackendPreset() },
             set: { applyBackendPreset($0) }
         )
+    }
+
+    private var youTubeHealthStatusColor: Color {
+        switch youTubeHealthStatus {
+        case .ok:
+            return .green
+        case .needsAttention:
+            return .orange
+        case .error:
+            return .red
+        case .unknown:
+            return .secondary
+        }
+    }
+
+    private var youTubeHealthSummary: String {
+        switch youTubeHealthStatus {
+        case .ok:
+            return "YouTube playback looks healthy."
+        case .needsAttention:
+            return "Playback may fail until cookies are refreshed."
+        case .error:
+            return "Unable to verify playback right now."
+        case .unknown:
+            return "Run a check to verify cookies and bot-check status."
+        }
     }
 
     private var appVersionString: String {
@@ -186,6 +227,41 @@ struct SettingsView: View {
                     Text("Feeds sync uses the default server; YouTube uses this selection.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+
+                Section("YouTube Playback") {
+                    HStack {
+                        Text("Stream Health")
+                        Spacer()
+                        Text(youTubeHealthStatus.rawValue)
+                            .foregroundStyle(youTubeHealthStatusColor)
+                    }
+
+                    if let checkedAt = youTubeHealthCheckedAt {
+                        HStack {
+                            Text("Last Checked")
+                            Spacer()
+                            Text(checkedAt, style: .relative)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Text(youTubeHealthSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        Task { await refreshYouTubeHealth() }
+                    } label: {
+                        HStack {
+                            Label("Check Now", systemImage: "waveform.path.ecg")
+                            Spacer()
+                            if isCheckingYouTubeHealth {
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .disabled(isCheckingYouTubeHealth)
                 }
 
                 // Data Section
@@ -338,6 +414,11 @@ struct SettingsView: View {
             } message: {
                 Text("Are you sure you want to sign out?")
             }
+            .alert("YouTube Playback", isPresented: $showingYouTubeHealthAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(youTubeHealthAlertMessage)
+            }
             .alert(opmlAlertTitle, isPresented: $showingOPMLAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -364,6 +445,11 @@ struct SettingsView: View {
                         .shadow(radius: 12)
                     }
                 }
+            }
+            .task {
+                if didAutoCheckYouTubeHealth { return }
+                didAutoCheckYouTubeHealth = true
+                await refreshYouTubeHealth()
             }
         }
     }
@@ -406,6 +492,49 @@ struct SettingsView: View {
         exportDocument = OPMLDocument(text: OPMLService.generate(items: items))
         exportFilename = "feedflow-subscriptions-\(dateStampForFilename()).opml"
         showingExportSheet = true
+    }
+
+    @MainActor
+    private func refreshYouTubeHealth() async {
+        guard !isCheckingYouTubeHealth else { return }
+        isCheckingYouTubeHealth = true
+        defer { isCheckingYouTubeHealth = false }
+
+        do {
+            let response = try await APIClient.shared.getYouTubeStreamHealth()
+            youTubeHealthCheckedAt = response.checkedAt ?? Date()
+
+            if response.ok {
+                youTubeHealthStatus = .ok
+                youTubeHealthMessage = ""
+                return
+            }
+
+            let normalizedStatus = response.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if normalizedStatus == "bot_check" || normalizedStatus == "cookies_invalid" || normalizedStatus == "no_stream" {
+                youTubeHealthStatus = .needsAttention
+            } else if normalizedStatus == "unauthorized" {
+                youTubeHealthStatus = .error
+            } else {
+                youTubeHealthStatus = .error
+            }
+
+            let fallback = youTubeHealthFallbackMessage(for: normalizedStatus)
+            let trimmedMessage = response.message?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            youTubeHealthMessage = trimmedMessage
+            if youTubeHealthMessage.isEmpty {
+                youTubeHealthMessage = fallback
+            }
+
+            youTubeHealthAlertMessage = youTubeHealthMessage
+            showingYouTubeHealthAlert = true
+        } catch {
+            youTubeHealthCheckedAt = Date()
+            youTubeHealthStatus = .error
+            youTubeHealthMessage = error.localizedDescription
+            youTubeHealthAlertMessage = "Unable to check YouTube playback: \(error.localizedDescription)"
+            showingYouTubeHealthAlert = true
+        }
     }
 
     @MainActor
@@ -494,6 +623,21 @@ struct SettingsView: View {
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         formatter.dateFormat = "yyyyMMdd-HHmmss"
         return formatter.string(from: date)
+    }
+
+    private func youTubeHealthFallbackMessage(for status: String) -> String {
+        switch status {
+        case "bot_check":
+            return "YouTube blocked this server. Re-export cookies after completing the bot-check."
+        case "cookies_invalid":
+            return "YouTube cookies are invalid or expired. Re-export cookies and reinstall on the backend."
+        case "no_stream":
+            return "No playable streams found for the health check video."
+        case "unauthorized":
+            return "Sign in to FeedFlow to check YouTube playback health."
+        default:
+            return "Unable to verify YouTube playback right now."
+        }
     }
 
     private func isDuplicateFeedError(_ error: Error) -> Bool {

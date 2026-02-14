@@ -91,6 +91,7 @@ const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY;
 const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 
 const youtubeRouter = new Hono();
+const defaultHealthVideoId = (process.env.YOUTUBE_HEALTHCHECK_VIDEO_ID || "dQw4w9WgXcQ").trim();
 
 const streamProxySecret = process.env.STREAM_PROXY_SECRET;
 const streamProxyAccessToken = process.env.STREAM_PROXY_ACCESS_TOKEN;
@@ -354,6 +355,123 @@ youtubeRouter.get("/channel/:id/rss", async (c) => {
   return c.json({
     rssUrl: getChannelRssUrl(channelId),
   });
+});
+
+// Check YouTube stream health (cookies / bot-check)
+const youtubeHealthSchema = z.object({
+  videoId: z.string().optional(),
+});
+
+youtubeRouter.get("/health", zValidator("query", youtubeHealthSchema), async (c) => {
+  const { videoId } = c.req.valid("query");
+  const checkedAt = new Date().toISOString();
+  const targetVideoId = (videoId?.trim() || defaultHealthVideoId).trim();
+
+  try {
+    await authorizeStreamRequest(c);
+  } catch (error) {
+    const message = error instanceof HTTPException ? error.message : "Unauthorized";
+    return c.json(
+      {
+        ok: false,
+        status: "unauthorized",
+        message,
+        checkedAt,
+        videoId: targetVideoId,
+      },
+      200
+    );
+  }
+
+  if (!targetVideoId) {
+    return c.json(
+      {
+        ok: false,
+        status: "error",
+        message: "Missing health check video ID",
+        checkedAt,
+      },
+      200
+    );
+  }
+
+  try {
+    const streams = await getStreamUrls(targetVideoId, { bypassCache: true });
+    if (!streams.videoUrl && !streams.audioUrl) {
+      return c.json(
+        {
+          ok: false,
+          status: "no_stream",
+          message: "No playable streams found",
+          checkedAt,
+          videoId: targetVideoId,
+        },
+        200
+      );
+    }
+
+    return c.json(
+      {
+        ok: true,
+        status: "ok",
+        checkedAt,
+        videoId: targetVideoId,
+      },
+      200
+    );
+  } catch (error) {
+    console.error("YouTube health check error:", error);
+
+    const ytdlpErrorText = extractYtdlpErrorText(error);
+    const ytdlpMessage = extractYtdlpErrorMessage(error);
+
+    if (ytdlpErrorText && isYtdlpCookiesInvalidMessage(ytdlpErrorText)) {
+      const hint =
+        "YouTube cookies are configured but invalid/rotated. Re-export cookies and reinstall (YTDLP_COOKIES_PATH or YTDLP_COOKIES_BASE64), then restart/redeploy.";
+      return c.json(
+        {
+          ok: false,
+          status: "cookies_invalid",
+          message: hint,
+          checkedAt,
+          videoId: targetVideoId,
+        },
+        200
+      );
+    }
+
+    if (ytdlpMessage && isYouTubeAuthOrBotCheckMessage(ytdlpMessage)) {
+      const hasCookies =
+        Boolean(process.env.YTDLP_COOKIES_PATH?.trim()) ||
+        Boolean(process.env.YTDLP_COOKIES_BASE64?.trim()) ||
+        Boolean(process.env.YTDLP_COOKIES?.trim());
+
+      const hint = hasCookies
+        ? "YouTube blocked this server (bot check). Cookies are configured, but YouTube still requires verification. This is usually caused by the server/proxy exit IP reputation. Try switching to a different proxy/VPN exit (prefer residential) or complete the 'confirm you're not a bot' challenge in a browser using the same exit IP, then re-export cookies and restart/redeploy."
+        : "YouTube blocked this server (bot check). Configure yt-dlp cookies (YTDLP_COOKIES_PATH or YTDLP_COOKIES_BASE64) on the backend and restart/redeploy.";
+      return c.json(
+        {
+          ok: false,
+          status: "bot_check",
+          message: hint,
+          checkedAt,
+          videoId: targetVideoId,
+        },
+        200
+      );
+    }
+
+    return c.json(
+      {
+        ok: false,
+        status: "error",
+        message: ytdlpMessage || "Failed to check YouTube playback health",
+        checkedAt,
+        videoId: targetVideoId,
+      },
+      200
+    );
+  }
 });
 
 // Get video info

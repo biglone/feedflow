@@ -411,11 +411,18 @@ export async function getVideoInfo(videoId: string): Promise<VideoInfo> {
   };
 }
 
-export async function getStreamUrls(videoId: string): Promise<StreamUrls> {
+export async function getStreamUrls(
+  videoId: string,
+  options: { bypassCache?: boolean } = {}
+): Promise<StreamUrls> {
+  const bypassCache = options.bypassCache === true;
+
   // Check cache first
-  const cached = streamCache.get(videoId);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.data;
+  if (!bypassCache) {
+    const cached = streamCache.get(videoId);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.data;
+    }
   }
 
   const url = `https://www.youtube.com/watch?v=${videoId}`;
@@ -498,7 +505,9 @@ export async function getStreamUrls(videoId: string): Promise<StreamUrls> {
   };
 
   // Cache the result
-  streamCache.set(videoId, { data: result, timestamp: Date.now() });
+  if (!bypassCache) {
+    streamCache.set(videoId, { data: result, timestamp: Date.now() });
+  }
 
   return result;
 }
