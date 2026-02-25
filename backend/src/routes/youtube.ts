@@ -87,7 +87,12 @@ function isYouTubeAuthOrBotCheckMessage(message: string): boolean {
 }
 
 // Proxy configuration
-const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY;
+const proxyUrl =
+  process.env.YOUTUBE_PROXY_URL?.trim() ||
+  process.env.https_proxy ||
+  process.env.HTTPS_PROXY ||
+  process.env.http_proxy ||
+  process.env.HTTP_PROXY;
 const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 
 const youtubeRouter = new Hono();

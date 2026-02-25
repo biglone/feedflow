@@ -86,6 +86,7 @@ let ytdlp = ytdlpPath ? youtubedl.create(ytdlpPath) : youtubedl;
 
 // Proxy configuration (for regions where YouTube needs a proxy)
 const proxyUrl =
+  normalizeEnvValue(process.env.YOUTUBE_PROXY_URL) ||
   process.env.https_proxy ||
   process.env.HTTPS_PROXY ||
   process.env.http_proxy ||
