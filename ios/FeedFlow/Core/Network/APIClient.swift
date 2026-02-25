@@ -204,6 +204,9 @@ actor APIClient {
         do {
             (data, response) = try await URLSession.shared.data(for: request)
         } catch {
+            if error is CancellationError || (error as? URLError)?.code == .cancelled {
+                throw error
+            }
             AppLog.network.error("HTTP \(method, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
             throw error
         }

@@ -88,12 +88,15 @@ struct ArticlesListView: View {
                 }
             }
         }
+        .refreshable {
+            await refreshFeed()
+        }
         .onAppear {
             if let channelId = youTubeChannelId {
                 youTubeReachedEnd = UserDefaults.standard.bool(forKey: "youtubeVideosReachedEnd.\(channelId)")
             }
         }
-        .alert("YouTube", isPresented: $showingYouTubeLoadError) {
+        .alert("Feed", isPresented: $showingYouTubeLoadError) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(youTubeLoadError?.localizedDescription ?? "Failed to load videos")
@@ -130,6 +133,19 @@ struct ArticlesListView: View {
             let feedManager = FeedManager(modelContext: modelContext)
             youTubeLoadedCount = try await feedManager.loadMoreYouTubeVideos(for: feed)
             youTubeReachedEnd = UserDefaults.standard.bool(forKey: "youtubeVideosReachedEnd.\(channelId)")
+        } catch {
+            youTubeLoadError = error
+            showingYouTubeLoadError = true
+        }
+    }
+
+    @MainActor
+    private func refreshFeed() async {
+        guard let feed else { return }
+
+        do {
+            let feedManager = FeedManager(modelContext: modelContext)
+            try await feedManager.refreshFeed(feed)
         } catch {
             youTubeLoadError = error
             showingYouTubeLoadError = true

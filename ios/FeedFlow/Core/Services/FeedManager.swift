@@ -401,6 +401,19 @@ class FeedManager: ObservableObject {
     }
 
     func refreshFeed(_ feed: Feed) async throws {
+        if syncMode == .cloud, let cloudId = normalizedCloudId(feed.cloudId) {
+            let newArticlesCount = try await apiClient.refreshFeed(id: cloudId)
+            let maxPages = newArticlesCount > 0 ? 2 : 1
+            try await mergeCloudFeedArticles(
+                into: feed,
+                cloudFeedId: cloudId,
+                maxPages: maxPages
+            )
+            feed.lastUpdated = Date()
+            try modelContext.save()
+            return
+        }
+
         let parsedFeed = try await rssService.fetchFeed(from: feed.feedURL)
 
         if feed.kind == nil, parsedFeed.kind == .podcast {
@@ -433,6 +446,87 @@ class FeedManager: ObservableObject {
         feed.lastUpdated = Date()
 
         try modelContext.save()
+    }
+
+    private func mergeCloudFeedArticles(
+        into feed: Feed,
+        cloudFeedId: String,
+        pageSize: Int = 100,
+        maxPages: Int = 5
+    ) async throws {
+        var articlesByGuid: [String: Article] = [:]
+        for article in feed.articles {
+            articlesByGuid[article.guid] = article
+        }
+
+        var offset = 0
+        var page = 0
+
+        while page < maxPages {
+            let cloudArticles = try await apiClient.getFeedArticles(
+                feedId: cloudFeedId,
+                limit: pageSize,
+                offset: offset
+            )
+
+            if cloudArticles.isEmpty {
+                break
+            }
+
+            for cloudArticle in cloudArticles {
+                if let existingArticle = articlesByGuid[cloudArticle.guid] {
+                    applyCloudArticle(cloudArticle, to: existingArticle)
+                    continue
+                }
+
+                let (imageURL, audioURL) = splitCloudMediaURL(cloudArticle.imageUrl)
+                let article = Article(
+                    guid: cloudArticle.guid,
+                    title: cloudArticle.title,
+                    content: cloudArticle.content,
+                    summary: cloudArticle.summary,
+                    articleURL: cloudArticle.url,
+                    author: cloudArticle.author,
+                    imageURL: imageURL,
+                    audioURL: audioURL,
+                    publishedAt: cloudArticle.publishedAt
+                )
+                article.isRead = cloudArticle.isRead
+                article.isStarred = cloudArticle.isStarred
+                article.feed = feed
+                modelContext.insert(article)
+                articlesByGuid[cloudArticle.guid] = article
+            }
+
+            if cloudArticles.count < pageSize {
+                break
+            }
+
+            offset += pageSize
+            page += 1
+        }
+
+        feed.unreadCount = feed.articles.filter { !$0.isRead }.count
+    }
+
+    private func applyCloudArticle(_ cloudArticle: APIClient.ArticleDTO, to article: Article) {
+        article.title = cloudArticle.title
+        article.content = cloudArticle.content
+        article.summary = cloudArticle.summary
+        article.articleURL = cloudArticle.url
+        article.author = cloudArticle.author
+        let (imageURL, audioURL) = splitCloudMediaURL(cloudArticle.imageUrl)
+        article.imageURL = imageURL
+        article.audioURL = audioURL
+        article.publishedAt = cloudArticle.publishedAt
+        article.isRead = cloudArticle.isRead
+        article.isStarred = cloudArticle.isStarred
+    }
+
+    private func splitCloudMediaURL(_ value: String?) -> (imageURL: String?, audioURL: String?) {
+        let audioURL = FeedKind.isAudioEnclosureURL(value) ? value : nil
+        let imageURL = audioURL == nil ? value : nil
+        return (imageURL, audioURL)
     }
 
     func refreshAllFeeds(kind: FeedKind? = nil) async {
